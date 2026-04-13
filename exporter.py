@@ -1,157 +1,529 @@
+"""
+exporter.py
+-----------
+Generates a fully standalone HTML reviewer file.
+The JS-heavy template lives here so engine.py stays clean Python.
+"""
+
 import json
 
-def generate_html_string(subject_name, data):
-    json_data = json.dumps(data, ensure_ascii=False)
-    safe_name = subject_name.replace('"', "'")
-    return f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Halo-Halo — {safe_name}</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+
+def build_export_html(deck_name: str, subjects: list) -> str:
+    """
+    Build a self-contained HTML string with embedded JS study modes.
+    subjects = [{"name": str, "items": [{"term": str, "def": str}]}]
+    """
+    payload   = json.dumps(subjects, ensure_ascii=False)
+    safe_name = deck_name.replace('"', "'")
+
+    # ── Inline template (f-string, JS braces doubled) ─────────────────────
+    return (
+        '<!DOCTYPE html>\n'
+        '<html lang="en">\n'
+        '<head>\n'
+        '<meta charset="UTF-8"/>\n'
+        '<meta name="viewport" content="width=device-width,initial-scale=1.0"/>\n'
+        f'<title>🍧 {safe_name} – Halo-Halo Reviewer</title>\n'
+        '<link href="https://fonts.googleapis.com/css2?family=Lekkerli+One'
+        '&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet"/>\n'
+        + _EXPORT_STYLE
+        + f'</head>\n<body>\n'
+        + f'<header><h1>🍧 Halo-Halo</h1>'
+        + f'<span class="deck-label">{safe_name}</span></header>\n'
+        + _EXPORT_NAV
+        + _EXPORT_BODY
+        + f'<script>\nconst SUBJECTS = {payload};\nconst ROUNDS = 10;\n'
+        + _EXPORT_JS
+        + '</script>\n</body>\n</html>'
+    )
+
+
+# ── CSS ───────────────────────────────────────────────────────────────────────
+_EXPORT_STYLE = """
 <style>
-:root{{--ube:#633971;--ube-dk:#4a2856;--mango:#FFC300;--milk:#FFFDD0;--white:#fff;--text:#1a0f22;--muted:#7a5a8a;--green:#22c55e;--red:#ef4444;}}
-*{{box-sizing:border-box;margin:0;padding:0}}
-body{{background:var(--milk);font-family:'DM Sans',sans-serif;color:var(--text);min-height:100vh}}
-header{{background:var(--ube);color:var(--milk);padding:20px 32px;display:flex;align-items:center;justify-content:space-between}}
-header h1{{font-family:'Playfair Display',serif;font-size:1.6rem}}
-nav{{display:flex;gap:8px;justify-content:center;padding:16px;background:var(--ube-dk)}}
-nav button{{background:transparent;border:2px solid var(--mango);color:var(--mango);padding:8px 24px;border-radius:999px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.9rem;font-weight:600;transition:all .2s}}
-nav button.active,nav button:hover{{background:var(--mango);color:var(--text)}}
-#app{{max-width:700px;margin:36px auto;padding:0 20px 80px}}
-.hidden{{display:none!important}}
-.progress-wrap{{background:rgba(99,57,113,.15);border-radius:8px;height:8px;margin-bottom:16px;overflow:hidden}}
-.progress-bar{{height:100%;background:linear-gradient(90deg,var(--ube),var(--mango));border-radius:8px;transition:width .5s ease}}
-.score-row{{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}}
-.badge{{padding:5px 14px;border-radius:999px;font-size:.8rem;font-weight:600}}
-.b-total{{background:var(--ube);color:var(--milk)}}
-.b-correct{{background:#dcfce7;color:#166534}}
-.b-wrong{{background:#fee2e2;color:#991b1b}}
-.b-pct{{background:var(--mango);color:var(--text)}}
-.card-wrap{{perspective:1000px;height:240px;margin:12px 0 20px;cursor:pointer}}
-.card{{width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform .6s cubic-bezier(.4,0,.2,1)}}
-.card.flipped{{transform:rotateY(180deg)}}
-.card-face{{position:absolute;width:100%;height:100%;backface-visibility:hidden;border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;box-shadow:0 8px 32px rgba(99,57,113,.15)}}
-.card-front{{background:var(--white);border:3px solid var(--mango)}}
-.card-back{{background:var(--ube);color:var(--milk);border:3px solid var(--mango);transform:rotateY(180deg)}}
-.card-tag{{font-size:.7rem;letter-spacing:3px;text-transform:uppercase;opacity:.5;margin-bottom:12px}}
-.card-text{{font-family:'Playfair Display',serif;font-size:1.4rem;line-height:1.5}}
-.card-hint{{font-size:.8rem;opacity:.4;margin-top:16px}}
-.rating-row{{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:16px}}
-.r-btn{{padding:9px 18px;border:none;border-radius:12px;cursor:pointer;font-weight:700;font-family:'DM Sans',sans-serif;font-size:.85rem;color:#fff;transition:transform .1s,opacity .15s}}
-.r-btn:hover{{transform:translateY(-3px)}}
-.fc-stats{{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}}
-.fc-stat{{background:var(--white);border:2px solid var(--mango);border-radius:16px;padding:16px;text-align:center}}
-.fc-stat .num{{font-family:'Playfair Display',serif;font-size:2rem;color:var(--ube)}}
-.fc-stat .lbl{{font-size:.75rem;color:var(--muted);margin-top:4px}}
-.q-box{{background:var(--white);border:3px solid var(--mango);border-radius:20px;padding:32px;text-align:center;font-family:'Playfair Display',serif;font-size:1.3rem;min-height:100px;display:flex;align-items:center;justify-content:center;margin-bottom:20px;box-shadow:0 4px 20px rgba(99,57,113,.1)}}
-.choices{{display:flex;flex-direction:column;gap:10px}}
-.c-btn{{background:var(--white);border:2px solid var(--ube);color:var(--text);padding:14px 20px;border-radius:14px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:1rem;text-align:left;transition:all .18s}}
-.c-btn:hover:not(:disabled){{background:var(--milk);border-color:var(--mango)}}
-.c-btn.correct{{background:#dcfce7;border-color:var(--green);color:#166534;font-weight:600}}
-.c-btn.wrong{{background:#fee2e2;border-color:var(--red);color:#991b1b}}
-.c-btn:disabled{{cursor:default}}
-.fb{{text-align:center;padding:10px 16px;border-radius:12px;font-weight:600;margin:12px 0;display:none}}
-.fb.ok{{background:#dcfce7;color:#166534;display:block}}
-.fb.bad{{background:#fee2e2;color:#991b1b;display:block}}
-.id-input{{width:100%;padding:14px 18px;border:2px solid var(--ube);border-radius:14px;font-family:'DM Sans',sans-serif;font-size:1rem;margin-bottom:12px;outline:none;transition:border-color .2s;background:var(--white)}}
-.id-input:focus{{border-color:var(--mango)}}
-.id-input.ok{{border-color:var(--green);background:#dcfce7}}
-.id-input.bad{{border-color:var(--red);background:#fee2e2}}
-.btn{{padding:11px 28px;border:none;border-radius:12px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.95rem;transition:all .18s}}
-.btn-p{{background:var(--ube);color:var(--milk)}}
-.btn-p:hover{{background:var(--ube-dk)}}
-.btn-s{{background:var(--mango);color:var(--text)}}
-.btn-s:hover{{background:#e6a800}}
-.done-box{{background:var(--white);border:3px solid var(--mango);border-radius:24px;padding:48px;text-align:center;box-shadow:0 8px 32px rgba(99,57,113,.15)}}
-.done-box h2{{font-family:'Playfair Display',serif;color:var(--ube);font-size:2rem;margin-bottom:8px}}
-.done-big{{font-family:'Playfair Display',serif;font-size:4rem;color:var(--ube);margin:12px 0}}
+:root{--purple:#4B164C;--purple-dk:#370f37;--pink:#F37E9A;--cream:#FFFCF0;
+  --white:#fff;--text:#2d1535;--muted:#8b6a93;--green:#22c55e;
+  --green-lt:#dcfce7;--green-dk:#166534;--red:#ef4444;
+  --red-lt:#fee2e2;--red-dk:#991b1b;--yellow:#f59e0b;
+  --glass:rgba(255,252,240,.65);--gborder:rgba(255,255,255,.55);}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;background:var(--cream);color:var(--text);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;width:500px;height:500px;
+  background:radial-gradient(circle,rgba(243,126,154,.18) 0%,transparent 70%);
+  top:-160px;right:-100px;border-radius:50%;filter:blur(70px);pointer-events:none;z-index:0}
+header{background:var(--purple);padding:16px 32px;display:flex;align-items:center;
+  justify-content:space-between;box-shadow:0 2px 20px rgba(75,22,76,.28);position:relative;z-index:10}
+header h1{font-family:'Lekkerli One',cursive;font-size:1.6rem;color:var(--cream);letter-spacing:.02em}
+.deck-label{color:rgba(255,252,240,.55);font-size:.85rem;font-weight:500}
+nav{background:rgba(75,22,76,.92);backdrop-filter:blur(12px);
+  display:flex;gap:4px;justify-content:center;padding:10px 20px;position:relative;z-index:10}
+nav button{background:transparent;border:1.5px solid rgba(243,126,154,.4);
+  color:rgba(255,252,240,.6);padding:8px 22px;border-radius:999px;cursor:pointer;
+  font-family:'Nunito',sans-serif;font-size:.85rem;font-weight:700;transition:all .2s}
+nav button.active,nav button:hover{background:var(--pink);color:#fff;border-color:var(--pink)}
+.sub-nav{display:flex;gap:7px;justify-content:center;padding:10px 20px;
+  background:rgba(255,252,240,.7);backdrop-filter:blur(8px);
+  border-bottom:1px solid rgba(75,22,76,.1);flex-wrap:wrap}
+.sub-btn{background:transparent;border:1.5px solid rgba(75,22,76,.18);color:var(--muted);
+  padding:5px 15px;border-radius:999px;cursor:pointer;font-family:'Nunito',sans-serif;
+  font-size:.78rem;font-weight:700;transition:all .2s}
+.sub-btn.active{background:var(--purple);color:var(--cream);border-color:var(--purple)}
+#app{max-width:680px;margin:28px auto;padding:0 18px 80px;position:relative;z-index:1}
+.hidden{display:none!important}
+.glass{background:var(--glass);backdrop-filter:blur(18px);border:1px solid var(--gborder)}
+.prog-track{background:rgba(75,22,76,.1);border-radius:8px;height:7px;overflow:hidden;margin-bottom:6px}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--purple),var(--pink));
+  border-radius:8px;transition:width .5s ease}
+.prog-meta{display:flex;justify-content:space-between;font-size:.75rem;
+  color:var(--muted);font-weight:600;margin-bottom:20px}
+.prog-meta .pct{color:var(--pink);font-weight:700}
+.score-bar{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}
+.s-pill{padding:4px 13px;border-radius:999px;font-size:.75rem;font-weight:700}
+.sp-t{background:var(--purple);color:var(--cream)}
+.sp-c{background:var(--green-lt);color:var(--green-dk)}
+.sp-w{background:var(--red-lt);color:var(--red-dk)}
+.sp-p{background:var(--pink);color:#fff}
+.card-scene{perspective:1200px;height:220px;cursor:pointer;margin:6px 0 16px;user-select:none}
+.card-3d{width:100%;height:100%;position:relative;transform-style:preserve-3d;
+  transition:transform .65s cubic-bezier(.4,0,.2,1)}
+.card-3d.flipped{transform:rotateY(180deg)}
+.card-face{position:absolute;inset:0;backface-visibility:hidden;border-radius:22px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:32px;text-align:center}
+.card-front{background:var(--glass);backdrop-filter:blur(18px);
+  border:2px solid rgba(243,126,154,.3);
+  box-shadow:0 8px 28px rgba(75,22,76,.1),inset 0 1px 0 rgba(255,255,255,.6)}
+.card-back{background:linear-gradient(135deg,var(--purple),#7a3d7b);color:var(--cream);
+  border:2px solid rgba(243,126,154,.4);transform:rotateY(180deg);
+  box-shadow:0 8px 28px rgba(75,22,76,.28)}
+.face-tag{font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;
+  opacity:.4;margin-bottom:10px;font-weight:700}
+.face-text{font-size:1.25rem;font-weight:700;line-height:1.45;max-width:500px}
+.face-hint{font-size:.72rem;opacity:.32;margin-top:14px;font-style:italic}
+.r-row{display:flex;justify-content:center;gap:7px;flex-wrap:wrap;margin-bottom:16px}
+.r-lbl{text-align:center;font-size:.75rem;color:var(--muted);font-weight:600;
+  margin-bottom:9px;display:block}
+.r-btn{display:flex;flex-direction:column;align-items:center;gap:2px;
+  border:none;border-radius:12px;padding:9px 12px;cursor:pointer;
+  font-family:'Nunito',sans-serif;font-size:1rem;font-weight:800;color:#fff;
+  min-width:52px;transition:transform .15s}
+.r-btn small{font-size:.58rem;font-weight:600;opacity:.85}
+.r-btn:hover{transform:translateY(-3px)}
+.r1{background:#ef4444}.r2{background:#f97316}
+.r3{background:#eab308;color:#1a0f22}.r4{background:#84cc16;color:#1a0f22}
+.r5{background:#22c55e}
+.fc-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin:14px 0 18px}
+.stat{background:var(--glass);backdrop-filter:blur(14px);border:1px solid var(--gborder);
+  border-radius:14px;padding:12px 8px;text-align:center}
+.stat .n{font-family:'Lekkerli One',cursive;font-size:1.7rem;line-height:1}
+.n-g{color:var(--green)}.n-r{color:var(--red)}.n-y{color:var(--yellow)}.n-m{color:var(--muted)}
+.stat .l{font-size:.65rem;color:var(--muted);font-weight:700;margin-top:3px}
+.q-card{background:var(--glass);backdrop-filter:blur(18px);
+  border:2px solid rgba(243,126,154,.28);border-radius:22px;
+  padding:32px 26px;text-align:center;font-size:1.2rem;font-weight:700;
+  min-height:100px;display:flex;align-items:center;justify-content:center;
+  margin-bottom:18px;line-height:1.5;
+  box-shadow:0 6px 22px rgba(75,22,76,.09),inset 0 1px 0 rgba(255,255,255,.6)}
+.choices{display:flex;flex-direction:column;gap:9px;margin-bottom:12px}
+.c-btn{background:var(--glass);backdrop-filter:blur(10px);
+  border:1.5px solid rgba(75,22,76,.15);color:var(--text);
+  border-radius:14px;padding:13px 18px;text-align:left;
+  font-family:'Nunito',sans-serif;font-size:.93rem;font-weight:500;
+  cursor:pointer;transition:all .18s;line-height:1.4}
+.c-btn:hover:not(:disabled){border-color:var(--pink);background:rgba(243,126,154,.06)}
+.c-btn.correct{background:var(--green-lt);border-color:var(--green);color:var(--green-dk);font-weight:700}
+.c-btn.wrong{background:var(--red-lt);border-color:var(--red);color:var(--red-dk)}
+.c-btn:disabled{cursor:default}
+.fb{padding:11px 16px;border-radius:12px;font-weight:700;font-size:.88rem;margin-bottom:12px}
+.fb-ok{background:var(--green-lt);color:var(--green-dk)}
+.fb-bad{background:var(--red-lt);color:var(--red-dk)}
+.id-input{width:100%;padding:13px 17px;border:1.5px solid rgba(75,22,76,.18);
+  border-radius:14px;font-family:'Nunito',sans-serif;font-size:.98rem;
+  background:var(--glass);backdrop-filter:blur(10px);
+  color:var(--text);outline:none;margin-bottom:11px;transition:border-color .2s}
+.id-input:focus{border-color:var(--pink)}
+.id-input.ok{border-color:var(--green);background:var(--green-lt)}
+.id-input.bad{border-color:var(--red);background:var(--red-lt)}
+.actions{display:flex;align-items:center;gap:8px}
+.btn{padding:9px 20px;border:none;border-radius:999px;
+  font-family:'Nunito',sans-serif;font-weight:700;font-size:.85rem;
+  cursor:pointer;transition:all .2s}
+.btn-p{background:var(--purple);color:var(--cream)}
+.btn-p:hover{background:var(--purple-dk,#370f37)}
+.btn-s{background:var(--pink);color:#fff}
+.btn-s:hover{filter:brightness(1.08)}
+.btn-g{background:transparent;border:1.5px solid rgba(75,22,76,.2);color:var(--muted)}
+.btn-g:hover{border-color:var(--purple);color:var(--purple)}
+.ml{margin-left:auto}
+.done-box{text-align:center;padding:44px 28px;background:var(--glass);
+  backdrop-filter:blur(20px);border:2px solid rgba(243,126,154,.3);
+  border-radius:24px;margin-top:18px;
+  box-shadow:0 8px 32px rgba(75,22,76,.12)}
+.done-box h2{font-family:'Lekkerli One',cursive;font-size:1.7rem;color:var(--purple);margin-bottom:8px}
+.done-score{font-family:'Lekkerli One',cursive;font-size:3.8rem;color:var(--purple);
+  line-height:1;margin:14px 0 6px}
+.done-sub{color:var(--muted);font-size:.87rem;margin-bottom:22px}
 </style>
-</head>
-<body>
-<header>
-  <h1>🍧 Halo-Halo</h1>
-  <span style="font-size:.9rem;opacity:.7">{safe_name}</span>
-</header>
+"""
+
+
+# ── Navigation bar ────────────────────────────────────────────────────────────
+_EXPORT_NAV = """
 <nav>
-  <button class="active" onclick="setMode('fc')">📇 Flashcards</button>
-  <button onclick="setMode('mc')">🔘 Multiple Choice</button>
-  <button onclick="setMode('id')">✏️ Identification</button>
+  <button class="active" onclick="setMode('fc',this)">📇 Flashcards</button>
+  <button onclick="setMode('mc',this)">🔘 Multiple Choice</button>
+  <button onclick="setMode('id',this)">✏️ Identification</button>
 </nav>
+<div class="sub-nav" id="sub-nav"></div>
+"""
+
+
+# ── App body ──────────────────────────────────────────────────────────────────
+_EXPORT_BODY = """
 <div id="app">
+
+  <!-- Flashcards -->
   <div id="mode-fc">
-    <div style="font-size:.85rem;color:var(--muted);margin-bottom:6px" id="fc-meta"></div>
-    <div class="progress-wrap"><div class="progress-bar" id="fc-bar" style="width:0%"></div></div>
-    <div class="card-wrap" onclick="flipCard()">
-      <div class="card" id="fc-card">
-        <div class="card-face card-front"><div class="card-tag">term</div><div class="card-text" id="fc-term"></div><div class="card-hint">click to flip</div></div>
-        <div class="card-face card-back"><div class="card-tag" style="color:rgba(255,253,208,.5)">definition</div><div class="card-text" id="fc-def"></div></div>
+    <div class="prog-track"><div class="prog-fill" id="fc-bar" style="width:0%"></div></div>
+    <div class="prog-meta"><span id="fc-pos">Card — of —</span><span class="pct" id="fc-pct">0%</span></div>
+    <div class="card-scene" onclick="flipCard()">
+      <div class="card-3d" id="fc-card">
+        <div class="card-face card-front">
+          <span class="face-tag">term</span>
+          <p class="face-text" id="fc-term">—</p>
+          <span class="face-hint">tap to flip</span>
+        </div>
+        <div class="card-face card-back">
+          <span class="face-tag" style="color:rgba(255,252,240,.45)">definition</span>
+          <p class="face-text" id="fc-def">—</p>
+        </div>
       </div>
     </div>
-    <div class="rating-row hidden" id="fc-ratings">
-      <button class="r-btn" style="background:#ef4444" onclick="rate(1)">1 · Again</button>
-      <button class="r-btn" style="background:#f97316" onclick="rate(2)">2 · Hard</button>
-      <button class="r-btn" style="background:#eab308;color:#1a0f22" onclick="rate(3)">3 · Okay</button>
-      <button class="r-btn" style="background:#84cc16;color:#1a0f22" onclick="rate(4)">4 · Good</button>
-      <button class="r-btn" style="background:#22c55e" onclick="rate(5)">5 · Easy</button>
+    <div id="r-strip" class="hidden">
+      <span class="r-lbl">How well did you know this?</span>
+      <div class="r-row">
+        <button class="r-btn r1" onclick="rate(1)">1<small>Again</small></button>
+        <button class="r-btn r2" onclick="rate(2)">2<small>Hard</small></button>
+        <button class="r-btn r3" onclick="rate(3)">3<small>Okay</small></button>
+        <button class="r-btn r4" onclick="rate(4)">4<small>Good</small></button>
+        <button class="r-btn r5" onclick="rate(5)">5<small>Easy</small></button>
+      </div>
     </div>
     <div class="fc-stats">
-      <div class="fc-stat"><div class="num" id="fc-mastered">0</div><div class="lbl">✅ Mastered</div></div>
-      <div class="fc-stat"><div class="num" id="fc-struggling">0</div><div class="lbl">🔴 Struggling</div></div>
-      <div class="fc-stat"><div class="num" id="fc-remaining">0</div><div class="lbl">📋 Remaining</div></div>
+      <div class="stat"><div class="n n-g" id="fc-m">0</div><div class="l">Mastered</div></div>
+      <div class="stat"><div class="n n-r" id="fc-s">0</div><div class="l">Struggling</div></div>
+      <div class="stat"><div class="n n-y" id="fc-g">0</div><div class="l">Getting it</div></div>
+      <div class="stat"><div class="n n-m" id="fc-r">0</div><div class="l">Remaining</div></div>
     </div>
+    <div class="actions"><button class="btn btn-g" onclick="initFC()">↺ Restart</button></div>
   </div>
+
+  <!-- Multiple Choice -->
   <div id="mode-mc" class="hidden">
-    <div class="score-row" id="mc-scores"></div>
-    <div class="progress-wrap"><div class="progress-bar" id="mc-bar" style="width:0%"></div></div>
-    <div class="q-box" id="mc-q"></div>
+    <div class="score-bar" id="mc-sb"></div>
+    <div class="prog-track"><div class="prog-fill" id="mc-bar" style="width:0%"></div></div>
+    <div class="prog-meta"><span id="mc-pos"></span><span class="pct" id="mc-pct">—</span></div>
+    <div class="q-card" id="mc-q"></div>
     <div class="choices" id="mc-choices"></div>
-    <div class="fb" id="mc-fb"></div>
-    <div style="text-align:right;margin-top:12px"><button class="btn btn-s hidden" id="mc-next" onclick="nextMC()">Next →</button></div>
-    <div class="done-box hidden" id="mc-done"><h2>Quiz Complete 🎉</h2><div class="done-big" id="mc-dscore"></div><p id="mc-dsub" style="color:var(--muted);margin-bottom:24px"></p><button class="btn btn-p" onclick="resetMC()">Try Again</button></div>
-  </div>
-  <div id="mode-id" class="hidden">
-    <div class="score-row" id="id-scores"></div>
-    <div class="progress-wrap"><div class="progress-bar" id="id-bar" style="width:0%"></div></div>
-    <div class="q-box" id="id-q"></div>
-    <input class="id-input" id="id-inp" placeholder="Type the definition…"/>
-    <div class="fb" id="id-fb"></div>
-    <div style="display:flex;gap:10px">
-      <button class="btn btn-p" id="id-sub" onclick="submitID()">Submit</button>
-      <button class="btn btn-s hidden" id="id-next" onclick="nextID()">Next →</button>
+    <div class="fb hidden" id="mc-fb"></div>
+    <div class="actions">
+      <button class="btn btn-g" onclick="initMC()">↺ Restart</button>
+      <button class="btn btn-s ml hidden" id="mc-next" onclick="nextMC()">Next →</button>
     </div>
-    <div class="done-box hidden" id="id-done"><h2>Round Complete 🎉</h2><div class="done-big" id="id-dscore"></div><p id="id-dsub" style="color:var(--muted);margin-bottom:24px"></p><button class="btn btn-p" onclick="resetID()">Try Again</button></div>
+    <div class="done-box hidden" id="mc-done">
+      <div style="font-size:2.2rem;margin-bottom:12px">🎉</div>
+      <h2>Quiz Complete!</h2>
+      <div class="done-score" id="mc-ds"></div>
+      <p class="done-sub" id="mc-dp"></p>
+      <button class="btn btn-p" onclick="initMC()">Try Again</button>
+    </div>
   </div>
+
+  <!-- Identification -->
+  <div id="mode-id" class="hidden">
+    <div class="score-bar" id="id-sb"></div>
+    <div class="prog-track"><div class="prog-fill" id="id-bar" style="width:0%"></div></div>
+    <div class="prog-meta"><span id="id-pos"></span><span class="pct" id="id-pct">—</span></div>
+    <div class="q-card" id="id-q"></div>
+    <input class="id-input" id="id-inp" placeholder="Type the definition…"/>
+    <div class="fb hidden" id="id-fb"></div>
+    <div class="actions">
+      <button class="btn btn-g" onclick="initID()">↺ Restart</button>
+      <button class="btn btn-p" id="id-sub" onclick="submitID()">Submit</button>
+      <button class="btn btn-s ml hidden" id="id-nxt" onclick="nextID()">Next →</button>
+    </div>
+    <div class="done-box hidden" id="id-done">
+      <div style="font-size:2.2rem;margin-bottom:12px">🎉</div>
+      <h2>Round Complete!</h2>
+      <div class="done-score" id="id-ds"></div>
+      <p class="done-sub" id="id-dp"></p>
+      <button class="btn btn-p" onclick="initID()">Try Again</button>
+    </div>
+  </div>
+
 </div>
-<script>
-const D={json_data};
-let fcFlipped=false,mcTotal=0,mcCorrect=0,mcCurrent=null,mcAnswered=false;
-let idTotal=0,idCorrect=0,idCurrent=null,idAnswered=false;
-function shuffle(a){{for(let i=a.length-1;i>0;i--){{const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}}return a}}
-function sample(a,n){{return shuffle([...a]).slice(0,n)}}
-function setMode(m){{['fc','mc','id'].forEach(k=>document.getElementById('mode-'+k).classList.toggle('hidden',k!==m));document.querySelectorAll('nav button').forEach((b,i)=>b.classList.toggle('active',['fc','mc','id'][i]===m));if(m==='fc')initFC();if(m==='mc')initMC();if(m==='id')initID()}}
-let fcDeck,fcIdx,fcMastered=0,fcStruggling=0;
-function initFC(){{fcDeck=shuffle([...D]);fcIdx=0;fcMastered=0;fcStruggling=0;renderFC()}}
-function renderFC(){{if(fcIdx>=fcDeck.length){{document.getElementById('fc-term').textContent='🎉 All done!';document.getElementById('fc-def').textContent='Great job!';document.getElementById('fc-meta').textContent='Session complete';document.getElementById('fc-bar').style.width='100%';document.getElementById('fc-ratings').classList.add('hidden');updateFCStats(fcDeck.length,0);return}}const c=fcDeck[fcIdx];document.getElementById('fc-term').textContent=c.term;document.getElementById('fc-def').textContent=c['def'];document.getElementById('fc-meta').textContent='Card '+(fcIdx+1)+' of '+fcDeck.length;document.getElementById('fc-bar').style.width=Math.round(fcIdx/D.length*100)+'%';document.getElementById('fc-card').classList.remove('flipped');document.getElementById('fc-ratings').classList.add('hidden');fcFlipped=false;updateFCStats(fcMastered,fcStruggling,fcDeck.length-fcIdx)}}
-function flipCard(){{if(fcIdx>=fcDeck.length)return;fcFlipped=!fcFlipped;document.getElementById('fc-card').classList.toggle('flipped',fcFlipped);document.getElementById('fc-ratings').classList.toggle('hidden',!fcFlipped)}}
-function rate(r){{if(!fcFlipped)return;const c=fcDeck.splice(fcIdx,1)[0];if(r<=2){{fcStruggling++;fcDeck.splice(Math.min(fcIdx+3,fcDeck.length),0,c)}}else if(r<=4){{fcDeck.splice(Math.max(fcIdx,Math.floor((fcIdx+fcDeck.length)/2)),0,c)}}else{{fcMastered++;fcDeck.push(c)}}renderFC()}}
-function updateFCStats(m,s,rem){{document.getElementById('fc-mastered').textContent=m||0;document.getElementById('fc-struggling').textContent=s||0;document.getElementById('fc-remaining').textContent=rem!==undefined?rem:0}}
-function scoreBadges(total,correct,pct,tid,cid,wid,pid){{const wrong=total-correct;document.getElementById(tid).innerHTML='<span class="badge b-total">📋 '+total+' Qs</span><span class="badge b-correct">✅ '+correct+'</span><span class="badge b-wrong">❌ '+wrong+'</span><span class="badge b-pct">🎯 '+(total?pct+'%':'—')+'</span>'}}
-function initMC(){{mcTotal=0;mcCorrect=0;document.getElementById('mc-done').classList.add('hidden');loadMC()}}
-function loadMC(){{const item=D[Math.floor(Math.random()*D.length)];const correct=item['def'];const distractors=sample(D.filter(x=>x['def'].toLowerCase()!==correct.toLowerCase()).map(x=>x['def']),3);const choices=shuffle([...distractors,correct]);mcCurrent={{term:item.term,correct}};mcAnswered=false;document.getElementById('mc-q').textContent=item.term;document.getElementById('mc-fb').className='fb';document.getElementById('mc-next').classList.add('hidden');const ch=document.getElementById('mc-choices');ch.innerHTML='';choices.forEach(c=>{{const b=document.createElement('button');b.className='c-btn';b.textContent=c;b.onclick=()=>answerMC(b,c,correct,choices);ch.appendChild(b)}});renderMCScore()}}
-function renderMCScore(){{const pct=mcTotal?Math.round(mcCorrect/mcTotal*100):0;document.getElementById('mc-scores').innerHTML='<span class="badge b-total">📋 '+mcTotal+' Qs</span><span class="badge b-correct">✅ '+mcCorrect+'</span><span class="badge b-wrong">❌ '+(mcTotal-mcCorrect)+'</span><span class="badge b-pct">🎯 '+(mcTotal?pct+'%':'—')+'</span>'}}
-function answerMC(btn,chosen,correct){{if(mcAnswered)return;mcAnswered=true;const ok=chosen.toLowerCase()===correct.toLowerCase();if(ok)mcCorrect++;mcTotal++;document.querySelectorAll('.c-btn').forEach(b=>{{b.disabled=true;if(b.textContent.toLowerCase()===correct.toLowerCase())b.classList.add('correct');else if(b===btn&&!ok)b.classList.add('wrong')}});const fb=document.getElementById('mc-fb');fb.textContent=ok?'✅ Correct!':'❌ Wrong! Answer: '+correct;fb.className='fb '+(ok?'ok':'bad');document.getElementById('mc-next').classList.remove('hidden');renderMCScore()}}
-function nextMC(){{if(mcTotal>=D.length&&D.length>1){{const pct=Math.round(mcCorrect/mcTotal*100);document.getElementById('mc-dscore').textContent=pct+'%';document.getElementById('mc-dsub').textContent=mcCorrect+' correct out of '+mcTotal;document.getElementById('mc-done').classList.remove('hidden');return}}loadMC()}}
-function resetMC(){{document.getElementById('mc-done').classList.add('hidden');initMC()}}
-function initID(){{idTotal=0;idCorrect=0;document.getElementById('id-done').classList.add('hidden');loadID()}}
-function loadID(){{const item=D[Math.floor(Math.random()*D.length)];idCurrent=item['def'];idAnswered=false;document.getElementById('id-q').textContent=item.term;const inp=document.getElementById('id-inp');inp.value='';inp.className='id-input';inp.disabled=false;document.getElementById('id-fb').className='fb';document.getElementById('id-sub').classList.remove('hidden');document.getElementById('id-next').classList.add('hidden');renderIDScore();inp.focus()}}
-function renderIDScore(){{const pct=idTotal?Math.round(idCorrect/idTotal*100):0;document.getElementById('id-scores').innerHTML='<span class="badge b-total">📋 '+idTotal+' Qs</span><span class="badge b-correct">✅ '+idCorrect+'</span><span class="badge b-wrong">❌ '+(idTotal-idCorrect)+'</span><span class="badge b-pct">🎯 '+(idTotal?pct+'%':'—')+'</span>'}}
-function submitID(){{if(idAnswered||!idCurrent)return;const inp=document.getElementById('id-inp');const ok=inp.value.trim().toLowerCase()===idCurrent.trim().toLowerCase();if(ok)idCorrect++;idTotal++;idAnswered=true;inp.disabled=true;inp.className='id-input '+(ok?'ok':'bad');const fb=document.getElementById('id-fb');fb.textContent=ok?'✅ Correct!':'❌ Wrong! Answer: '+idCurrent;fb.className='fb '+(ok?'ok':'bad');document.getElementById('id-sub').classList.add('hidden');document.getElementById('id-next').classList.remove('hidden');renderIDScore()}}
-function nextID(){{if(idTotal>=D.length&&D.length>1){{const pct=Math.round(idCorrect/idTotal*100);document.getElementById('id-dscore').textContent=pct+'%';document.getElementById('id-dsub').textContent=idCorrect+' correct out of '+idTotal;document.getElementById('id-done').classList.remove('hidden');return}}loadID()}}
-function resetID(){{document.getElementById('id-done').classList.add('hidden');initID()}}
-document.getElementById('id-inp').addEventListener('keydown',e=>{{if(e.key==='Enter'){{if(!document.getElementById('id-next').classList.contains('hidden'))nextID();else submitID()}}}}); 
-setMode('fc');
-</script>
-</body>
-</html>"""
+"""
+
+
+# ── JavaScript ────────────────────────────────────────────────────────────────
+_EXPORT_JS = r"""
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+function sample(a, n) { return shuffle([...a]).slice(0, n); }
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Subject tabs ──────────────────────────────────────────────────────────────
+let curSubj = 0;
+
+function buildSubNav() {
+  const el = document.getElementById('sub-nav');
+  if (SUBJECTS.length <= 1) { el.style.display = 'none'; return; }
+  el.innerHTML = SUBJECTS.map((s, i) =>
+    `<button class="sub-btn${i === 0 ? ' active' : ''}" onclick="switchSubj(${i},this)">${esc(s.name)}</button>`
+  ).join('');
+}
+
+function switchSubj(i, btn) {
+  curSubj = i;
+  document.querySelectorAll('.sub-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const activeMode = document.querySelector('nav button.active');
+  const mode = activeMode ? (activeMode.textContent.includes('Flash') ? 'fc' :
+               activeMode.textContent.includes('Choice') ? 'mc' : 'id') : 'fc';
+  if (mode === 'fc') initFC();
+  if (mode === 'mc') initMC();
+  if (mode === 'id') initID();
+}
+
+function items() { return SUBJECTS[curSubj] ? SUBJECTS[curSubj].items : []; }
+
+function setMode(m, btn) {
+  ['fc','mc','id'].forEach(k =>
+    document.getElementById('mode-' + k).classList.toggle('hidden', k !== m)
+  );
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  if (m === 'fc') initFC();
+  if (m === 'mc') initMC();
+  if (m === 'id') initID();
+}
+
+// ── FLASHCARDS ────────────────────────────────────────────────────────────────
+let fcDeck = [], fcIdx = 0, fcMastered = 0, fcStruggling = 0, fcGood = 0, fcFlipped = false;
+
+function initFC() {
+  fcDeck = shuffle(items().map(it => ({ term: it.term, def: it.def, r: 0 })));
+  fcIdx = 0; fcMastered = 0; fcStruggling = 0; fcGood = 0; fcFlipped = false;
+  renderFC();
+}
+
+function renderFC() {
+  if (fcIdx >= fcDeck.length) {
+    document.getElementById('fc-term').textContent = '🎉 All done!';
+    document.getElementById('fc-def').textContent  = 'Great work!';
+    document.getElementById('fc-pos').textContent  = 'Complete';
+    document.getElementById('fc-pct').textContent  = '100%';
+    document.getElementById('fc-bar').style.width  = '100%';
+    document.getElementById('r-strip').classList.add('hidden');
+    updFCStats(); return;
+  }
+  const c = fcDeck[fcIdx];
+  document.getElementById('fc-term').textContent = c.term;
+  document.getElementById('fc-def').textContent  = c.def;
+  document.getElementById('fc-pos').textContent  = `Card ${fcIdx + 1} of ${fcDeck.length}`;
+  const pct = Math.round(fcMastered / fcDeck.length * 100);
+  document.getElementById('fc-pct').textContent = pct + '% mastered';
+  document.getElementById('fc-bar').style.width = pct + '%';
+  fcFlipped = false;
+  document.getElementById('fc-card').classList.remove('flipped');
+  document.getElementById('r-strip').classList.add('hidden');
+  updFCStats();
+}
+
+function updFCStats() {
+  document.getElementById('fc-m').textContent = fcMastered;
+  document.getElementById('fc-s').textContent = fcStruggling;
+  document.getElementById('fc-g').textContent = fcGood;
+  document.getElementById('fc-r').textContent = Math.max(0, fcDeck.length - fcIdx);
+}
+
+function flipCard() {
+  if (fcIdx >= fcDeck.length) return;
+  fcFlipped = !fcFlipped;
+  document.getElementById('fc-card').classList.toggle('flipped', fcFlipped);
+  document.getElementById('r-strip').classList.toggle('hidden', !fcFlipped);
+}
+
+function rate(r) {
+  if (!fcFlipped) return;
+  const c = fcDeck.splice(fcIdx, 1)[0];
+  c.r = r;
+  if (r <= 2) {
+    fcStruggling++;
+    fcDeck.splice(Math.min(fcIdx + (r === 1 ? 3 : 5), fcDeck.length), 0, c);
+  } else if (r <= 4) {
+    fcGood++;
+    fcDeck.splice(Math.max(fcIdx, Math.floor((fcIdx + fcDeck.length) / 2)), 0, c);
+  } else {
+    fcMastered++;
+    fcDeck.push(c);
+  }
+  renderFC();
+}
+
+// ── MULTIPLE CHOICE ───────────────────────────────────────────────────────────
+let mcTotal = 0, mcCorrect = 0, mcQ = 0, mcCur = null, mcAnswered = false;
+
+function initMC() {
+  mcTotal = 0; mcCorrect = 0; mcQ = 0; mcAnswered = false;
+  document.getElementById('mc-done').classList.add('hidden');
+  renderMCScore(); loadMC();
+}
+
+function loadMC() {
+  if (mcQ >= ROUNDS) { showMCDone(); return; }
+  const its = items();
+  if (its.length < 4) { document.getElementById('mc-q').textContent = 'Need at least 4 items.'; return; }
+  const item    = its[Math.floor(Math.random() * its.length)];
+  const correct = item.def;
+  const others  = sample(its.filter(x => x.def !== correct).map(x => x.def), 3);
+  const choices = shuffle([...others, correct]);
+  mcCur = { term: item.term, correct };
+  mcAnswered = false;
+  document.getElementById('mc-q').textContent = item.term;
+  document.getElementById('mc-fb').classList.add('hidden');
+  document.getElementById('mc-next').classList.add('hidden');
+  document.getElementById('mc-pos').textContent = `Question ${mcQ + 1} of ${ROUNDS}`;
+  const ch = document.getElementById('mc-choices');
+  ch.innerHTML = '';
+  choices.forEach(c => {
+    const b = document.createElement('button');
+    b.className = 'c-btn';
+    b.textContent = c;
+    b.onclick = () => answerMC(b, c, correct);
+    ch.appendChild(b);
+  });
+  renderMCScore();
+}
+
+function answerMC(btn, chosen, correct) {
+  if (mcAnswered) return;
+  mcAnswered = true;
+  const ok = chosen.trim().toLowerCase() === correct.trim().toLowerCase();
+  if (ok) mcCorrect++;
+  mcTotal++; mcQ++;
+  document.querySelectorAll('.c-btn').forEach(b => {
+    b.disabled = true;
+    if (b.textContent.trim().toLowerCase() === correct.trim().toLowerCase()) b.classList.add('correct');
+    else if (b === btn && !ok) b.classList.add('wrong');
+  });
+  const fb = document.getElementById('mc-fb');
+  fb.textContent = ok ? '✅ Correct!' : `❌ Wrong! Answer: ${correct}`;
+  fb.className = 'fb ' + (ok ? 'fb-ok' : 'fb-bad');
+  fb.classList.remove('hidden');
+  document.getElementById('mc-next').classList.remove('hidden');
+  renderMCScore();
+}
+
+function nextMC() { loadMC(); }
+
+function showMCDone() {
+  const pct = mcTotal ? Math.round(mcCorrect / mcTotal * 100) : 0;
+  document.getElementById('mc-ds').textContent = pct + '%';
+  document.getElementById('mc-dp').textContent = `${mcCorrect} correct out of ${mcTotal}`;
+  document.getElementById('mc-done').classList.remove('hidden');
+  renderMCScore();
+}
+
+function renderMCScore() {
+  const pct = mcTotal ? Math.round(mcCorrect / mcTotal * 100) : 0;
+  document.getElementById('mc-sb').innerHTML =
+    `<span class="s-pill sp-t">📋 ${mcTotal}</span>` +
+    `<span class="s-pill sp-c">✅ ${mcCorrect}</span>` +
+    `<span class="s-pill sp-w">❌ ${mcTotal - mcCorrect}</span>` +
+    `<span class="s-pill sp-p">🎯 ${mcTotal ? pct + '%' : '—'}</span>`;
+  document.getElementById('mc-bar').style.width = Math.min(mcQ / ROUNDS * 100, 100) + '%';
+  document.getElementById('mc-pct').textContent = mcTotal ? pct + '%' : '—';
+}
+
+// ── IDENTIFICATION ────────────────────────────────────────────────────────────
+let idTotal = 0, idCorrect = 0, idQ = 0, idCur = null, idAnswered = false;
+
+function initID() {
+  idTotal = 0; idCorrect = 0; idQ = 0; idAnswered = false;
+  document.getElementById('id-done').classList.add('hidden');
+  renderIDScore(); loadID();
+}
+
+function loadID() {
+  if (idQ >= ROUNDS) { showIDDone(); return; }
+  const its  = items();
+  const item = its[Math.floor(Math.random() * its.length)];
+  idCur = item.def; idAnswered = false;
+  document.getElementById('id-q').textContent = item.term;
+  document.getElementById('id-pos').textContent = `Question ${idQ + 1} of ${ROUNDS}`;
+  const inp = document.getElementById('id-inp');
+  inp.value = ''; inp.className = 'id-input'; inp.disabled = false; inp.focus();
+  document.getElementById('id-fb').classList.add('hidden');
+  document.getElementById('id-sub').classList.remove('hidden');
+  document.getElementById('id-nxt').classList.add('hidden');
+  renderIDScore();
+}
+
+function submitID() {
+  if (idAnswered || !idCur) return;
+  const inp = document.getElementById('id-inp');
+  const ok  = inp.value.trim().toLowerCase() === idCur.trim().toLowerCase();
+  if (ok) idCorrect++;
+  idTotal++; idQ++; idAnswered = true;
+  inp.disabled = true;
+  inp.className = 'id-input ' + (ok ? 'ok' : 'bad');
+  const fb = document.getElementById('id-fb');
+  fb.textContent = ok ? '✅ Correct!' : `❌ Wrong! Answer: ${idCur}`;
+  fb.className = 'fb ' + (ok ? 'fb-ok' : 'fb-bad');
+  fb.classList.remove('hidden');
+  document.getElementById('id-sub').classList.add('hidden');
+  document.getElementById('id-nxt').classList.remove('hidden');
+  renderIDScore();
+}
+
+function nextID() { loadID(); }
+
+function showIDDone() {
+  const pct = idTotal ? Math.round(idCorrect / idTotal * 100) : 0;
+  document.getElementById('id-ds').textContent = pct + '%';
+  document.getElementById('id-dp').textContent = `${idCorrect} correct out of ${idTotal}`;
+  document.getElementById('id-done').classList.remove('hidden');
+  renderIDScore();
+}
+
+function renderIDScore() {
+  const pct = idTotal ? Math.round(idCorrect / idTotal * 100) : 0;
+  document.getElementById('id-sb').innerHTML =
+    `<span class="s-pill sp-t">📋 ${idTotal}</span>` +
+    `<span class="s-pill sp-c">✅ ${idCorrect}</span>` +
+    `<span class="s-pill sp-w">❌ ${idTotal - idCorrect}</span>` +
+    `<span class="s-pill sp-p">🎯 ${idTotal ? pct + '%' : '—'}</span>`;
+  document.getElementById('id-bar').style.width = Math.min(idQ / ROUNDS * 100, 100) + '%';
+  document.getElementById('id-pct').textContent = idTotal ? pct + '%' : '—';
+}
+
+// Enter key for ID
+document.getElementById('id-inp').addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  if (!document.getElementById('id-nxt').classList.contains('hidden')) nextID();
+  else submitID();
+});
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+buildSubNav();
+setMode('fc', document.querySelector('nav button'));
+"""

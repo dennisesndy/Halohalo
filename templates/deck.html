@@ -1,0 +1,474 @@
+{% extends "base.html" %}
+{% block title %} · {{ deck.name }}{% endblock %}
+
+{% block body %}
+<style>
+  .page { position: relative; z-index: 1; min-height: 100vh; }
+
+  /* ── Top nav ──────────────────────────────────────────────────────────── */
+  .topnav {
+    background: var(--purple);
+    padding: 0 32px;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 64px;
+    box-shadow: 0 2px 20px rgba(75,22,76,.25);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .nav-left   { display: flex; align-items: center; gap: 14px; }
+  .back-btn {
+    display: flex; align-items: center; gap: 7px;
+    background: rgba(255,252,240,.12);
+    border: none; color: var(--cream);
+    border-radius: var(--r-pill);
+    padding: 8px 16px;
+    font-family: 'Nunito', sans-serif; font-size: .85rem; font-weight: 600;
+    cursor: pointer; transition: background .2s;
+    text-decoration: none;
+  }
+  .back-btn:hover { background: rgba(255,252,240,.22); }
+  .nav-brand-text {
+    font-family: 'Lekkerli One', cursive;
+    font-size: 1.3rem; color: var(--cream); letter-spacing: .02em;
+  }
+  .nav-right { display: flex; align-items: center; gap: 10px; }
+
+  /* ── Deck hero ────────────────────────────────────────────────────────── */
+  .deck-hero {
+    background: linear-gradient(135deg, var(--purple) 0%, var(--purple-lt) 100%);
+    padding: 40px 40px 64px;
+    position: relative; overflow: hidden;
+  }
+  .deck-hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(circle at 85% 30%, rgba(243,126,154,.2) 0%, transparent 55%);
+    pointer-events: none;
+  }
+  .deck-hero-inner { position: relative; z-index: 1; display: flex; align-items: center; gap: 22px; }
+  .deck-hero-emoji { font-size: 3.5rem; filter: drop-shadow(0 4px 12px rgba(0,0,0,.2)); }
+  .deck-hero-name {
+    font-family: 'Lekkerli One', cursive;
+    font-size: 2.2rem; color: var(--cream); line-height: 1.1; margin-bottom: 4px;
+  }
+  .deck-hero-meta { color: rgba(255,252,240,.6); font-size: .88rem; font-weight: 500; }
+
+  /* ── Main ─────────────────────────────────────────────────────────────── */
+  .main {
+    max-width: 960px; margin: -28px auto 0;
+    padding: 0 28px 80px; position: relative; z-index: 2;
+  }
+
+  /* ── Section header ───────────────────────────────────────────────────── */
+  .section-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 18px;
+  }
+  .section-title {
+    font-family: 'Lekkerli One', cursive;
+    font-size: 1.4rem; color: var(--purple);
+  }
+  .section-actions { display: flex; gap: 8px; }
+
+  /* ── Subject grid ─────────────────────────────────────────────────────── */
+  .subjects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 18px;
+  }
+
+  /* ── Subject card ─────────────────────────────────────────────────────── */
+  .subject-card {
+    border-radius: var(--r-xl);
+    overflow: hidden;
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+    transition: transform .22s, box-shadow .22s;
+    animation: fadeUp .35s ease both;
+    position: relative;
+  }
+  .subject-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, var(--purple), var(--pink));
+  }
+  .subject-card:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(75,22,76,.18); }
+
+  .subject-card-body { padding: 22px 20px 16px; }
+  .subject-name {
+    font-family: 'Lekkerli One', cursive;
+    font-size: 1.1rem; color: var(--text); margin-bottom: 6px;
+  }
+  .subject-count {
+    font-size: .78rem; color: var(--text-muted); font-weight: 600; margin-bottom: 16px;
+  }
+
+  /* ── Progress bars per mode ───────────────────────────────────────────── */
+  .mode-progress { margin-bottom: 10px; }
+  .mode-row {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 5px;
+  }
+  .mode-icon { font-size: .8rem; width: 18px; }
+  .mode-track { flex: 1; background: var(--border); border-radius: 6px; height: 6px; overflow: hidden; }
+  .mode-fill  { height: 100%; border-radius: 6px; transition: width .6s ease; }
+  .fill-fc   { background: linear-gradient(90deg, var(--purple), var(--pink)); }
+  .fill-mc   { background: linear-gradient(90deg, #f59e0b, #f97316); }
+  .fill-id   { background: linear-gradient(90deg, #22c55e, #16a34a); }
+  .mode-score { font-size: .7rem; color: var(--text-muted); font-weight: 600; min-width: 32px; text-align: right; }
+
+  /* ── Card actions ─────────────────────────────────────────────────────── */
+  .subject-actions {
+    padding: 12px 20px 18px;
+    border-top: 1px solid var(--border);
+    display: flex; gap: 7px;
+  }
+  .subject-actions .btn { flex: 1; font-size: .78rem; padding: 8px 10px; }
+
+  /* ── Add subject card ─────────────────────────────────────────────────── */
+  .subject-card-add {
+    border: 2px dashed var(--border-md);
+    border-radius: var(--r-xl);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 10px; cursor: pointer;
+    transition: all .22s; padding: 36px 20px;
+    color: var(--text-muted); background: transparent;
+    min-height: 220px;
+  }
+  .subject-card-add:hover {
+    border-color: var(--pink); color: var(--pink);
+    background: rgba(243,126,154,.04); transform: translateY(-3px);
+  }
+  .subject-add-icon {
+    width: 48px; height: 48px; border-radius: 50%;
+    background: var(--purple-ghost);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem; transition: background .2s;
+  }
+  .subject-card-add:hover .subject-add-icon { background: rgba(243,126,154,.12); }
+
+  /* ── Empty state ──────────────────────────────────────────────────────── */
+  .empty-box {
+    text-align: center; padding: 56px 20px;
+    border: 2px dashed var(--border-md); border-radius: var(--r-xl);
+    background: rgba(255,252,240,.5); grid-column: 1 / -1;
+  }
+  .empty-box h3 { font-family:'Lekkerli One',cursive; font-size:1.3rem; color:var(--purple); margin-bottom:8px; }
+  .empty-box p  { color:var(--text-muted); margin-bottom:20px; font-size:.9rem; }
+
+  /* ── Import modal specifics ───────────────────────────────────────────── */
+  .import-hint {
+    background: var(--purple-ghost);
+    border-radius: var(--r-sm);
+    padding: 10px 14px;
+    font-size: .8rem;
+    color: var(--text-muted);
+    margin-top: 8px;
+    line-height: 1.6;
+  }
+  .import-hint code {
+    background: rgba(75,22,76,.1);
+    color: var(--purple-lt);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: .78rem;
+  }
+  .skip-notice {
+    font-size: .8rem; color: var(--yellow); font-weight: 600; margin-top: 10px;
+  }
+</style>
+
+<div class="page">
+
+  <!-- Nav -->
+  <nav class="topnav">
+    <div class="nav-left">
+      <a class="back-btn" href="/dashboard">← Decks</a>
+      <span class="nav-brand-text">{{ deck.emoji }} {{ deck.name }}</span>
+    </div>
+    <div class="nav-right">
+      <button class="btn btn-ghost btn-sm" onclick="exportDeck({{ deck.id }})">
+        ↓ Export HTML
+      </button>
+      <button class="btn btn-ghost btn-sm" onclick="logout()">Sign out</button>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <div class="deck-hero">
+    <div class="deck-hero-inner">
+      <span class="deck-hero-emoji">{{ deck.emoji }}</span>
+      <div>
+        <h1 class="deck-hero-name">{{ deck.name }}</h1>
+        <p class="deck-hero-meta" id="hero-meta">Loading subjects…</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="section-head anim-fadeup">
+      <h2 class="section-title">Subjects</h2>
+      <div class="section-actions">
+        <button class="btn btn-pink" onclick="openImportModal()">
+          ＋ Import Subject
+        </button>
+      </div>
+    </div>
+
+    <div class="subjects-grid" id="subjects-grid"></div>
+  </div>
+</div>
+
+<!-- ══ IMPORT SUBJECT MODAL ════════════════════════════════════════════════ -->
+<div class="modal-overlay hidden" id="import-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="import-modal-title">Import Subject</h3>
+      <button class="modal-close" onclick="closeImportModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:18px">
+        <label class="label">Subject Name</label>
+        <input class="field" id="subj-name" type="text" placeholder="e.g. Chapter 3 – Cell Biology"/>
+      </div>
+      <div>
+        <label class="label">
+          Notes
+          <span class="label-hint">term [TAB] definition · one pair per line</span>
+        </label>
+        <textarea class="field" id="subj-raw"
+          placeholder="Mitosis&#9;Cell division producing two identical daughter cells&#10;Osmosis&#9;Movement of water through a semipermeable membrane&#10;Photosynthesis&#9;Process where plants convert light to food"></textarea>
+        <div class="import-hint">
+          Separate each term and its definition with a <code>Tab</code> key.<br>
+          Double spaces also work. One pair per line.
+        </div>
+        <div class="skip-notice hidden" id="skip-notice"></div>
+      </div>
+      <div class="error-box hidden" id="import-error"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeImportModal()">Cancel</button>
+      <button class="btn btn-purple" onclick="doImport()">Import ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ EDIT SUBJECT MODAL ══════════════════════════════════════════════════ -->
+<div class="modal-overlay hidden" id="edit-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Edit Subject</h3>
+      <button class="modal-close" onclick="closeEditModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:18px">
+        <label class="label">Subject Name</label>
+        <input class="field" id="edit-name" type="text"/>
+      </div>
+      <div>
+        <label class="label">
+          Notes
+          <span class="label-hint">term [TAB] definition</span>
+        </label>
+        <textarea class="field" id="edit-raw"></textarea>
+      </div>
+      <div class="error-box hidden" id="edit-error"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeEditModal()">Cancel</button>
+      <button class="btn btn-purple" onclick="doEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // ── State ─────────────────────────────────────────────────────────────────
+  const DECK_ID = {{ deck.id }};
+  let subjects  = [];
+  let editId    = null;
+
+  // ── Boot ──────────────────────────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', loadSubjects);
+
+  // ── Load subjects ──────────────────────────────────────────────────────────
+  async function loadSubjects() {
+    const { ok, data } = await api(`/api/decks/${DECK_ID}/subjects`);
+    if (!ok) return;
+    subjects = data;
+    renderSubjects();
+    updateHeroMeta();
+  }
+
+  function updateHeroMeta() {
+    const total = subjects.length;
+    const avg   = total
+      ? Math.round(subjects.reduce((a, s) => a + s.mastery, 0) / total)
+      : 0;
+    document.getElementById('hero-meta').textContent =
+      `${total} subject${total !== 1 ? 's' : ''} · ${avg}% avg mastery`;
+  }
+
+  // ── Render subject cards ───────────────────────────────────────────────────
+  function renderSubjects() {
+    const grid = document.getElementById('subjects-grid');
+
+    if (subjects.length === 0) {
+      grid.innerHTML = `
+        <div class="empty-box">
+          <div style="font-size:2.8rem;margin-bottom:14px">📝</div>
+          <h3>No subjects yet</h3>
+          <p>Import your first subject to start studying.</p>
+          <button class="btn btn-purple" onclick="openImportModal()">＋ Import Subject</button>
+        </div>`;
+      return;
+    }
+
+    grid.innerHTML = subjects.map((s, i) => `
+      <div class="subject-card" style="animation-delay:${i * 55}ms">
+        <div class="subject-card-body">
+          <div class="subject-name">${esc(s.name)}</div>
+          <div class="subject-count">${s.count} item${s.count !== 1 ? 's' : ''}</div>
+
+          <!-- Progress bars for each mode -->
+          <div class="mode-progress">
+            <div class="mode-row">
+              <span class="mode-icon">📇</span>
+              <div class="mode-track"><div class="mode-fill fill-fc" style="width:${s.mastery}%"></div></div>
+              <span class="mode-score">${s.mastery}%</span>
+            </div>
+            <div class="mode-row">
+              <span class="mode-icon">🔘</span>
+              <div class="mode-track"><div class="mode-fill fill-mc" style="width:${s.mc_score.pct}%"></div></div>
+              <span class="mode-score">${s.mc_score.pct}%</span>
+            </div>
+            <div class="mode-row">
+              <span class="mode-icon">✏️</span>
+              <div class="mode-track"><div class="mode-fill fill-id" style="width:${s.id_score.pct}%"></div></div>
+              <span class="mode-score">${s.id_score.pct}%</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="subject-actions">
+          <button class="btn btn-purple" onclick="goStudy(${s.id})">▶ Study</button>
+          <button class="btn btn-ghost"  onclick="openEditModal(${s.id})">✏️</button>
+          <button class="btn btn-danger" onclick="deleteSubject(${s.id})">🗑</button>
+        </div>
+      </div>
+    `).join('') + `
+      <div class="subject-card-add" onclick="openImportModal()">
+        <div class="subject-add-icon">＋</div>
+        <span style="font-size:.88rem;font-weight:600">Import Subject</span>
+      </div>`;
+  }
+
+  // ── Navigate to study page ─────────────────────────────────────────────────
+  function goStudy(id) { location.href = `/study/${id}`; }
+
+  // ── Export deck ────────────────────────────────────────────────────────────
+  function exportDeck(id) { location.href = `/api/decks/${id}/export`; }
+
+  // ── Import modal ───────────────────────────────────────────────────────────
+  function openImportModal() {
+    document.getElementById('subj-name').value = '';
+    document.getElementById('subj-raw').value  = '';
+    document.getElementById('import-error').classList.add('hidden');
+    document.getElementById('skip-notice').classList.add('hidden');
+    document.getElementById('import-modal').classList.remove('hidden');
+    setTimeout(() => document.getElementById('subj-name').focus(), 50);
+  }
+  function closeImportModal() {
+    document.getElementById('import-modal').classList.add('hidden');
+  }
+
+  async function doImport() {
+    const name = document.getElementById('subj-name').value.trim();
+    const raw  = document.getElementById('subj-raw').value;
+    const errEl = document.getElementById('import-error');
+    const skipEl = document.getElementById('skip-notice');
+    errEl.classList.add('hidden');
+    skipEl.classList.add('hidden');
+
+    if (!name) { showErr(errEl, 'Please enter a subject name.'); return; }
+    if (!raw.trim()) { showErr(errEl, 'Please paste your notes.'); return; }
+
+    const { ok, data } = await api(`/api/decks/${DECK_ID}/subjects`, {
+      method: 'POST',
+      body: JSON.stringify({ name, raw }),
+    });
+
+    if (!ok) { showErr(errEl, data.error); return; }
+
+    if (data.skipped && data.skipped.length) {
+      skipEl.textContent = `⚠️ ${data.skipped.length} line(s) skipped (missing tab separator).`;
+      skipEl.classList.remove('hidden');
+      // Give user a moment to see it, then close
+      setTimeout(() => { closeImportModal(); loadSubjects(); toast(`"${name}" imported ✓`); }, 1600);
+    } else {
+      closeImportModal();
+      loadSubjects();
+      toast(`"${name}" imported 🎉`);
+    }
+  }
+
+  // ── Edit modal ─────────────────────────────────────────────────────────────
+  function openEditModal(id) {
+    const s = subjects.find(x => x.id === id);
+    if (!s) return;
+    editId = id;
+
+    // Note: items_json isn't loaded here—we'd need a separate fetch.
+    // For simplicity, we let the user re-paste. A future enhancement could
+    // pre-fill this by fetching /api/subjects/:id.
+    document.getElementById('edit-name').value = s.name;
+    document.getElementById('edit-raw').value  = '';
+    document.getElementById('edit-error').classList.add('hidden');
+    document.getElementById('edit-modal').classList.remove('hidden');
+    setTimeout(() => document.getElementById('edit-name').focus(), 50);
+  }
+  function closeEditModal() {
+    document.getElementById('edit-modal').classList.add('hidden');
+    editId = null;
+  }
+
+  async function doEdit() {
+    const name = document.getElementById('edit-name').value.trim();
+    const raw  = document.getElementById('edit-raw').value;
+    const errEl = document.getElementById('edit-error');
+    errEl.classList.add('hidden');
+
+    if (!name) { showErr(errEl, 'Subject name is required.'); return; }
+    if (!raw.trim()) { showErr(errEl, 'Please paste updated notes.'); return; }
+
+    const { ok, data } = await api(`/api/subjects/${editId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ name, raw }),
+    });
+    if (!ok) { showErr(errEl, data.error); return; }
+
+    closeEditModal();
+    loadSubjects();
+    toast('Subject updated ✓');
+  }
+
+  // ── Delete subject ─────────────────────────────────────────────────────────
+  async function deleteSubject(id) {
+    if (!confirm('Delete this subject? All progress will be lost.')) return;
+    await api(`/api/subjects/${id}`, { method: 'DELETE' });
+    toast('Subject deleted');
+    loadSubjects();
+  }
+
+  // ── Util ───────────────────────────────────────────────────────────────────
+  function showErr(el, msg) {
+    el.textContent = '⚠️ ' + msg;
+    el.classList.remove('hidden');
+  }
+</script>
+{% endblock %}

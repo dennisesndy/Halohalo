@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>🍧 Halo-Halo{% block title %}{% endblock %}</title>
+
+  <!-- Google Fonts: Lekkerli One (display) + Nunito (body) -->
+  <link href="https://fonts.googleapis.com/css2?family=Lekkerli+One&family=Nunito:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet"/>
+
+  <!-- Global design tokens -->
+  <style>
+    /* ── Design tokens ────────────────────────────────────────────────── */
+    :root {
+      /* Brand palette */
+      --purple:      #4B164C;
+      --purple-dk:   #370f37;
+      --purple-lt:   #7a3d7b;
+      --purple-ghost:rgba(75,22,76,.07);
+      --pink:        #F37E9A;
+      --pink-lt:     #fde8ef;
+      --pink-dk:     #d4617e;
+      --cream:       #FFFCF0;
+      --cream-dk:    #f5f0d8;
+
+      /* Semantic */
+      --text:        #2d1535;
+      --text-muted:  #8b6a93;
+      --text-light:  #b89abc;
+      --border:      rgba(75,22,76,.12);
+      --border-md:   rgba(75,22,76,.22);
+      --green:       #22c55e;
+      --green-lt:    #dcfce7;
+      --green-dk:    #166534;
+      --red:         #ef4444;
+      --red-lt:      #fee2e2;
+      --red-dk:      #991b1b;
+      --yellow:      #f59e0b;
+
+      /* Glass */
+      --glass-bg:    rgba(255,252,240,.65);
+      --glass-border:rgba(255,255,255,.55);
+      --glass-shadow:0 8px 32px rgba(75,22,76,.12);
+
+      /* Radii */
+      --r-sm:   10px;
+      --r-md:   16px;
+      --r-lg:   24px;
+      --r-xl:   32px;
+      --r-pill: 999px;
+    }
+
+    /* ── Reset ────────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { font-size: 16px; -webkit-font-smoothing: antialiased; }
+
+    body {
+      font-family: 'Nunito', sans-serif;
+      background: var(--cream);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Decorative background blobs ─────────────────────────────────── */
+    body::before, body::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      pointer-events: none;
+      z-index: 0;
+    }
+    body::before {
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(243,126,154,.18) 0%, transparent 70%);
+      top: -200px; right: -150px;
+    }
+    body::after {
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(75,22,76,.12) 0%, transparent 70%);
+      bottom: -150px; left: -100px;
+    }
+
+    /* ── Glass utility ────────────────────────────────────────────────── */
+    .glass {
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--glass-shadow);
+    }
+
+    /* ── Typography ───────────────────────────────────────────────────── */
+    .font-display { font-family: 'Lekkerli One', cursive; }
+
+    h1, h2, h3 { line-height: 1.2; }
+
+    /* ── Common components ────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      border: none;
+      border-radius: var(--r-pill);
+      padding: 10px 22px;
+      font-family: 'Nunito', sans-serif;
+      font-size: .88rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all .2s;
+      white-space: nowrap;
+    }
+    .btn-purple { background: var(--purple); color: var(--cream); }
+    .btn-purple:hover { background: var(--purple-dk); transform: translateY(-1px); }
+
+    .btn-pink { background: var(--pink); color: #fff; }
+    .btn-pink:hover { background: var(--pink-dk); transform: translateY(-1px); }
+
+    .btn-ghost {
+      background: transparent;
+      border: 1.5px solid var(--border-md);
+      color: var(--text-muted);
+    }
+    .btn-ghost:hover { border-color: var(--purple-lt); color: var(--purple); }
+
+    .btn-danger { background: var(--red); color: #fff; }
+    .btn-danger:hover { filter: brightness(1.1); }
+
+    .btn-sm { padding: 7px 16px; font-size: .8rem; }
+    .btn-lg { padding: 13px 30px; font-size: 1rem; }
+
+    /* ── Input / Textarea ─────────────────────────────────────────────── */
+    .field {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--r-md);
+      font-family: 'Nunito', sans-serif;
+      font-size: .95rem;
+      color: var(--text);
+      background: rgba(255,252,240,.8);
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .field:focus {
+      border-color: var(--pink);
+      box-shadow: 0 0 0 3px rgba(243,126,154,.15);
+    }
+    textarea.field { resize: vertical; min-height: 140px; line-height: 1.6; font-size: .88rem; font-family: 'Courier New', monospace; }
+
+    /* ── Utility ──────────────────────────────────────────────────────── */
+    .hidden { display: none !important; }
+    .relative { position: relative; }
+
+    /* ── Animations ───────────────────────────────────────────────────── */
+    @keyframes fadeUp   { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes fadeIn   { from { opacity:0; } to { opacity:1; } }
+    @keyframes slideIn  { from { opacity:0; transform:translateX(-12px); } to { opacity:1; transform:translateX(0); } }
+    @keyframes popIn    { from { opacity:0; transform:scale(.94); } to { opacity:1; transform:scale(1); } }
+
+    .anim-fadeup  { animation: fadeUp  .35s ease both; }
+    .anim-fadein  { animation: fadeIn  .25s ease both; }
+    .anim-popin   { animation: popIn   .3s  ease both; }
+
+    /* ── Toast ────────────────────────────────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--purple);
+      color: var(--cream);
+      padding: 12px 24px;
+      border-radius: var(--r-pill);
+      font-size: .88rem;
+      font-weight: 600;
+      opacity: 0;
+      transition: all .3s;
+      z-index: 9999;
+      pointer-events: none;
+      white-space: nowrap;
+      box-shadow: 0 4px 20px rgba(75,22,76,.35);
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ── Modal overlay ────────────────────────────────────────────────── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(45,21,53,.45);
+      backdrop-filter: blur(8px);
+      z-index: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      animation: fadeIn .2s ease;
+    }
+    .modal {
+      background: var(--cream);
+      border-radius: var(--r-xl);
+      box-shadow: 0 24px 64px rgba(75,22,76,.25);
+      width: 100%;
+      max-width: 520px;
+      animation: popIn .3s ease;
+      overflow: hidden;
+      border: 1px solid rgba(243,126,154,.2);
+    }
+    .modal-header {
+      background: var(--purple);
+      padding: 22px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .modal-header h3 {
+      font-family: 'Lekkerli One', cursive;
+      font-size: 1.3rem;
+      color: var(--cream);
+      letter-spacing: .02em;
+    }
+    .modal-close {
+      background: rgba(255,252,240,.15);
+      border: none;
+      color: var(--cream);
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background .2s;
+    }
+    .modal-close:hover { background: rgba(255,252,240,.28); }
+    .modal-body   { padding: 26px 28px; }
+    .modal-footer {
+      padding: 18px 28px;
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      border-top: 1px solid var(--border);
+      background: rgba(255,252,240,.5);
+    }
+
+    /* ── Field label ──────────────────────────────────────────────────── */
+    .label {
+      display: block;
+      font-size: .78rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-bottom: 7px;
+    }
+    .label-hint {
+      font-size: .78rem;
+      font-weight: 400;
+      text-transform: none;
+      letter-spacing: 0;
+      color: var(--text-light);
+      margin-left: 5px;
+    }
+
+    /* ── Error box ────────────────────────────────────────────────────── */
+    .error-box {
+      background: var(--red-lt);
+      border: 1px solid rgba(239,68,68,.3);
+      border-radius: var(--r-sm);
+      color: var(--red-dk);
+      padding: 10px 14px;
+      font-size: .85rem;
+      font-weight: 600;
+      margin-top: 12px;
+    }
+  </style>
+</head>
+<body>
+
+{% block body %}{% endblock %}
+
+<!-- Toast notification -->
+<div id="toast"></div>
+
+<!-- Shared JS utilities -->
+<script>
+  // ── Toast ──────────────────────────────────────────────────────────────
+  function toast(msg, duration = 2800) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), duration);
+  }
+
+  // ── API helper ─────────────────────────────────────────────────────────
+  async function api(url, opts = {}) {
+    opts.headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+    const res  = await fetch(url, opts);
+    const data = await res.json();
+    return { ok: res.ok, data };
+  }
+
+  // ── Escape HTML ────────────────────────────────────────────────────────
+  function esc(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // ── Close modal on overlay click ────────────────────────────────────────
+  document.addEventListener('click', e => {
+    if (e.target.classList.contains('modal-overlay')) {
+      e.target.classList.add('hidden');
+    }
+  });
+
+  // ── Logout ────────────────────────────────────────────────────────────
+  async function logout() {
+    await api('/api/auth/logout', { method: 'POST' });
+    location.href = '/login';
+  }
+</script>
+
+{% block scripts %}{% endblock %}
+</body>
+</html>

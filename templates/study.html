@@ -1,0 +1,669 @@
+{% extends "base.html" %}
+{% block title %} · Study – {{ subject.name }}{% endblock %}
+
+{% block body %}
+<style>
+  .page { position: relative; z-index: 1; min-height: 100vh; }
+
+  /* ── Top nav ─────────────────────────────────────────────────────────── */
+  .topnav {
+    background: var(--purple);
+    padding: 0 28px;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 60px;
+    box-shadow: 0 2px 16px rgba(75,22,76,.28);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .nav-left { display: flex; align-items: center; gap: 12px; }
+  .back-btn {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(255,252,240,.12);
+    border: none; color: var(--cream);
+    border-radius: var(--r-pill);
+    padding: 7px 14px;
+    font-family: 'Nunito', sans-serif; font-size: .82rem; font-weight: 600;
+    cursor: pointer; transition: background .2s; text-decoration: none;
+  }
+  .back-btn:hover { background: rgba(255,252,240,.22); }
+  .nav-subject {
+    font-family: 'Lekkerli One', cursive;
+    font-size: 1.2rem; color: var(--cream); letter-spacing: .02em;
+  }
+  .nav-deck {
+    font-size: .78rem; color: rgba(255,252,240,.5); font-weight: 500;
+  }
+
+  /* ── Mode tabs ───────────────────────────────────────────────────────── */
+  .mode-tabs {
+    background: rgba(75,22,76,.92);
+    backdrop-filter: blur(12px);
+    display: flex; gap: 4px;
+    padding: 10px 24px;
+    border-bottom: 1px solid rgba(243,126,154,.15);
+  }
+  .mode-tab {
+    display: flex; align-items: center; gap: 7px;
+    background: transparent; border: none;
+    color: rgba(255,252,240,.5);
+    border-radius: var(--r-pill); padding: 9px 20px;
+    font-family: 'Nunito', sans-serif; font-size: .88rem; font-weight: 700;
+    cursor: pointer; transition: all .2s;
+  }
+  .mode-tab:hover { color: var(--cream); background: rgba(255,252,240,.1); }
+  .mode-tab.active { background: var(--pink); color: #fff; }
+  .tab-icon { font-size: .95rem; }
+
+  /* ── Study body ──────────────────────────────────────────────────────── */
+  .study-body {
+    max-width: 700px; margin: 0 auto;
+    padding: 32px 22px 100px;
+  }
+
+  /* ── Panel ───────────────────────────────────────────────────────────── */
+  .panel { animation: fadeUp .3s ease both; }
+
+  /* ── Progress track ──────────────────────────────────────────────────── */
+  .progress-track {
+    background: rgba(75,22,76,.1);
+    border-radius: 8px; height: 8px; overflow: hidden; margin-bottom: 6px;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--purple), var(--pink));
+    border-radius: 8px; transition: width .5s cubic-bezier(.4,0,.2,1);
+  }
+  .progress-meta {
+    display: flex; justify-content: space-between;
+    font-size: .78rem; color: var(--text-muted); font-weight: 600;
+    margin-bottom: 22px;
+  }
+  .progress-meta .pct { color: var(--pink); font-weight: 700; }
+
+  /* ── Score bar ───────────────────────────────────────────────────────── */
+  .score-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .s-pill {
+    padding: 5px 14px; border-radius: var(--r-pill);
+    font-size: .78rem; font-weight: 700;
+  }
+  .sp-total   { background: var(--purple); color: var(--cream); }
+  .sp-correct { background: var(--green-lt); color: var(--green-dk); }
+  .sp-wrong   { background: var(--red-lt); color: var(--red-dk); }
+  .sp-pct     { background: var(--pink); color: #fff; }
+
+  /* ── 3D Flashcard ────────────────────────────────────────────────────── */
+  .card-scene {
+    perspective: 1200px;
+    height: 240px; cursor: pointer; margin-bottom: 18px;
+    user-select: none;
+  }
+  .card-3d {
+    width: 100%; height: 100%; position: relative;
+    transform-style: preserve-3d;
+    transition: transform .65s cubic-bezier(.4,0,.2,1);
+  }
+  .card-3d.flipped { transform: rotateY(180deg); }
+
+  .card-face {
+    position: absolute; inset: 0; backface-visibility: hidden;
+    border-radius: var(--r-xl);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 36px; text-align: center;
+  }
+  .card-front {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    border: 2px solid rgba(243,126,154,.35);
+    box-shadow: 0 8px 32px rgba(75,22,76,.12), inset 0 1px 0 rgba(255,255,255,.6);
+  }
+  .card-back {
+    background: linear-gradient(135deg, var(--purple) 0%, var(--purple-lt) 100%);
+    border: 2px solid rgba(243,126,154,.4);
+    box-shadow: 0 8px 32px rgba(75,22,76,.3);
+    transform: rotateY(180deg);
+    color: var(--cream);
+  }
+  .face-tag {
+    font-size: .65rem; letter-spacing: .18em; text-transform: uppercase;
+    opacity: .45; margin-bottom: 12px; font-weight: 700;
+  }
+  .face-text {
+    font-family: 'Nunito', sans-serif;
+    font-size: 1.35rem; font-weight: 700; line-height: 1.45;
+    max-width: 520px;
+  }
+  .face-hint { font-size: .75rem; opacity: .35; margin-top: 16px; font-style: italic; }
+
+  /* ── Rating strip ────────────────────────────────────────────────────── */
+  .rating-strip { text-align: center; margin-bottom: 20px; }
+  .rating-label {
+    font-size: .78rem; color: var(--text-muted); font-weight: 600;
+    margin-bottom: 10px; display: block;
+  }
+  .rating-row { display: flex; justify-content: center; gap: 8px; }
+  .r-btn {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    border: none; border-radius: 14px; padding: 10px 14px;
+    cursor: pointer; font-family: 'Nunito', sans-serif;
+    font-size: 1.05rem; font-weight: 800; color: #fff;
+    min-width: 56px; transition: transform .15s, filter .15s;
+  }
+  .r-btn small { font-size: .6rem; font-weight: 600; opacity: .85; }
+  .r-btn:hover { transform: translateY(-4px); filter: brightness(1.1); }
+  .r1 { background: #ef4444; } .r2 { background: #f97316; }
+  .r3 { background: #eab308; color: #1a0f22; }
+  .r4 { background: #84cc16; color: #1a0f22; } .r5 { background: #22c55e; }
+
+  /* ── FC stat cards ───────────────────────────────────────────────────── */
+  .fc-stats {
+    display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin: 16px 0;
+  }
+  .stat-card {
+    border-radius: var(--r-md); padding: 14px 10px; text-align: center;
+    background: var(--glass-bg); backdrop-filter: blur(16px);
+    border: 1px solid var(--glass-border); box-shadow: 0 2px 12px rgba(75,22,76,.07);
+  }
+  .stat-num { font-family:'Lekkerli One',cursive; font-size: 1.8rem; line-height: 1; }
+  .n-green { color: var(--green); }
+  .n-red   { color: var(--red); }
+  .n-yellow{ color: var(--yellow); }
+  .n-muted { color: var(--text-muted); }
+  .stat-lbl { font-size: .68rem; color: var(--text-muted); font-weight: 700; margin-top: 4px; }
+
+  /* ── Question card ───────────────────────────────────────────────────── */
+  .q-card {
+    background: var(--glass-bg); backdrop-filter: blur(20px);
+    border: 2px solid rgba(243,126,154,.3);
+    border-radius: var(--r-xl);
+    padding: 34px 28px; text-align: center;
+    font-size: 1.25rem; font-weight: 700;
+    min-height: 110px; display: flex; align-items: center; justify-content: center;
+    margin-bottom: 20px; line-height: 1.5;
+    box-shadow: 0 6px 24px rgba(75,22,76,.1), inset 0 1px 0 rgba(255,255,255,.6);
+  }
+
+  /* ── Choices ──────────────────────────────────────────────────────────── */
+  .choices { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+  .choice-btn {
+    background: var(--glass-bg); backdrop-filter: blur(12px);
+    border: 1.5px solid var(--border); color: var(--text);
+    border-radius: var(--r-lg); padding: 14px 20px; text-align: left;
+    font-family: 'Nunito', sans-serif; font-size: .95rem; font-weight: 500;
+    cursor: pointer; transition: all .18s; line-height: 1.4;
+  }
+  .choice-btn:hover:not(:disabled) { border-color: var(--pink); background: rgba(243,126,154,.06); }
+  .choice-btn.correct { background: var(--green-lt); border-color: var(--green); color: var(--green-dk); font-weight: 700; }
+  .choice-btn.wrong   { background: var(--red-lt);   border-color: var(--red);   color: var(--red-dk); }
+  .choice-btn:disabled { cursor: default; }
+
+  /* ── Feedback ─────────────────────────────────────────────────────────── */
+  .feedback {
+    padding: 12px 18px; border-radius: var(--r-md);
+    font-weight: 700; font-size: .9rem; margin-bottom: 14px;
+  }
+  .fb-ok  { background: var(--green-lt); color: var(--green-dk); }
+  .fb-bad { background: var(--red-lt);   color: var(--red-dk); }
+
+  /* ── ID input ─────────────────────────────────────────────────────────── */
+  .id-input {
+    width: 100%; padding: 14px 18px;
+    border: 1.5px solid var(--border); border-radius: var(--r-lg);
+    font-family: 'Nunito', sans-serif; font-size: 1rem;
+    background: var(--glass-bg); backdrop-filter: blur(12px);
+    color: var(--text); outline: none; margin-bottom: 12px;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .id-input:focus { border-color: var(--pink); box-shadow: 0 0 0 3px rgba(243,126,154,.15); }
+  .id-input.ok  { border-color: var(--green); background: var(--green-lt); }
+  .id-input.bad { border-color: var(--red);   background: var(--red-lt); }
+
+  /* ── Panel actions ────────────────────────────────────────────────────── */
+  .panel-actions { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+  .panel-actions .btn.ml { margin-left: auto; }
+
+  /* ── Done overlay ─────────────────────────────────────────────────────── */
+  .done-wrap {
+    position: absolute; inset: 0;
+    background: rgba(255,252,240,.88);
+    backdrop-filter: blur(16px);
+    display: flex; align-items: center; justify-content: center;
+    border-radius: var(--r-xl); z-index: 20;
+    animation: fadeIn .3s ease;
+  }
+  .done-card {
+    background: var(--cream); border: 2px solid rgba(243,126,154,.35);
+    border-radius: var(--r-xl); padding: 44px 36px; text-align: center;
+    box-shadow: 0 16px 48px rgba(75,22,76,.18); max-width: 360px; width: 100%;
+    animation: popIn .3s ease;
+  }
+  .done-emoji  { font-size: 2.8rem; margin-bottom: 12px; }
+  .done-title  { font-family:'Lekkerli One',cursive; font-size:1.7rem; color:var(--purple); margin-bottom:6px; }
+  .done-score  { font-family:'Lekkerli One',cursive; font-size:3.8rem; color:var(--purple); line-height:1; margin:14px 0 6px; }
+  .done-sub    { color:var(--text-muted); font-size:.88rem; margin-bottom:22px; }
+  .panel-relative { position: relative; }
+</style>
+
+<div class="page">
+
+  <!-- Nav -->
+  <nav class="topnav">
+    <div class="nav-left">
+      <a class="back-btn" href="/deck/{{ subject.deck_id }}">← Back</a>
+      <div>
+        <div class="nav-subject">{{ subject.name }}</div>
+        <div class="nav-deck">{{ deck.emoji }} {{ deck.name }}</div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Mode tabs -->
+  <div class="mode-tabs">
+    <button class="mode-tab active" data-mode="fc" onclick="setMode('fc',this)">
+      <span class="tab-icon">📇</span> Flashcards
+    </button>
+    <button class="mode-tab" data-mode="mc" onclick="setMode('mc',this)">
+      <span class="tab-icon">🔘</span> Multiple Choice
+    </button>
+    <button class="mode-tab" data-mode="id" onclick="setMode('id',this)">
+      <span class="tab-icon">✏️</span> Identification
+    </button>
+  </div>
+
+  <div class="study-body">
+
+    <!-- ═══ FLASHCARDS ═══════════════════════════════════════════════════ -->
+    <div id="panel-fc" class="panel">
+      <div class="progress-track"><div class="progress-fill" id="fc-bar"></div></div>
+      <div class="progress-meta">
+        <span id="fc-pos">Card — of —</span>
+        <span class="pct" id="fc-pct">0% mastered</span>
+      </div>
+
+      <!-- Card -->
+      <div class="card-scene" id="card-scene" onclick="flipCard()">
+        <div class="card-3d" id="fc-card">
+          <div class="card-face card-front">
+            <span class="face-tag">term</span>
+            <p class="face-text" id="fc-term">Loading…</p>
+            <span class="face-hint">tap to flip</span>
+          </div>
+          <div class="card-face card-back">
+            <span class="face-tag" style="color:rgba(255,252,240,.45)">definition</span>
+            <p class="face-text" id="fc-def"></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rating -->
+      <div class="rating-strip hidden" id="rating-strip">
+        <span class="rating-label">How well did you know this?</span>
+        <div class="rating-row">
+          <button class="r-btn r1" onclick="rateCard(1)">1<small>Again</small></button>
+          <button class="r-btn r2" onclick="rateCard(2)">2<small>Hard</small></button>
+          <button class="r-btn r3" onclick="rateCard(3)">3<small>Okay</small></button>
+          <button class="r-btn r4" onclick="rateCard(4)">4<small>Good</small></button>
+          <button class="r-btn r5" onclick="rateCard(5)">5<small>Easy</small></button>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="fc-stats">
+        <div class="stat-card"><div class="stat-num n-green" id="fc-mastered">0</div><div class="stat-lbl">Mastered</div></div>
+        <div class="stat-card"><div class="stat-num n-red"   id="fc-struggling">0</div><div class="stat-lbl">Struggling</div></div>
+        <div class="stat-card"><div class="stat-num n-yellow" id="fc-good">0</div><div class="stat-lbl">Getting it</div></div>
+        <div class="stat-card"><div class="stat-num n-muted" id="fc-remaining">0</div><div class="stat-lbl">Remaining</div></div>
+      </div>
+
+      <div class="panel-actions">
+        <button class="btn btn-ghost" onclick="startFC()">↺ Restart</button>
+      </div>
+    </div>
+
+    <!-- ═══ MULTIPLE CHOICE ═══════════════════════════════════════════════ -->
+    <div id="panel-mc" class="panel hidden panel-relative">
+      <div class="score-bar" id="mc-scores"></div>
+      <div class="progress-track"><div class="progress-fill" id="mc-bar" style="width:0%"></div></div>
+      <div class="progress-meta">
+        <span id="mc-pos">Question — of {{ ROUNDS }}</span>
+        <span class="pct" id="mc-pct">—</span>
+      </div>
+
+      <div class="q-card" id="mc-question">Loading…</div>
+      <div class="choices" id="mc-choices"></div>
+      <div class="feedback hidden" id="mc-feedback"></div>
+
+      <div class="panel-actions">
+        <button class="btn btn-ghost" onclick="resetMC()">↺ Restart</button>
+        <button class="btn btn-pink ml hidden" id="mc-next" onclick="nextMC()">Next →</button>
+      </div>
+
+      <!-- Done overlay -->
+      <div class="done-wrap hidden" id="mc-done">
+        <div class="done-card">
+          <div class="done-emoji">🎉</div>
+          <h2 class="done-title">Quiz Complete!</h2>
+          <div class="done-score" id="mc-done-score"></div>
+          <p class="done-sub" id="mc-done-sub"></p>
+          <button class="btn btn-purple btn-lg" onclick="resetMC()">Try Again</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ IDENTIFICATION ════════════════════════════════════════════════ -->
+    <div id="panel-id" class="panel hidden panel-relative">
+      <div class="score-bar" id="id-scores"></div>
+      <div class="progress-track"><div class="progress-fill" id="id-bar" style="width:0%"></div></div>
+      <div class="progress-meta">
+        <span id="id-pos">Question — of {{ ROUNDS }}</span>
+        <span class="pct" id="id-pct">—</span>
+      </div>
+
+      <div class="q-card" id="id-question">Loading…</div>
+      <input class="id-input" id="id-input" type="text" placeholder="Type the definition…"/>
+      <div class="feedback hidden" id="id-feedback"></div>
+
+      <div class="panel-actions">
+        <button class="btn btn-ghost" onclick="resetID()">↺ Restart</button>
+        <button class="btn btn-purple" id="id-submit" onclick="submitID()">Submit</button>
+        <button class="btn btn-pink ml hidden" id="id-next" onclick="nextID()">Next →</button>
+      </div>
+
+      <!-- Done overlay -->
+      <div class="done-wrap hidden" id="id-done">
+        <div class="done-card">
+          <div class="done-emoji">🎉</div>
+          <h2 class="done-title">Round Complete!</h2>
+          <div class="done-score" id="id-done-score"></div>
+          <p class="done-sub" id="id-done-sub"></p>
+          <button class="btn btn-purple btn-lg" onclick="resetID()">Try Again</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // ── Config ───────────────────────────────────────────────────────────────
+  const SID    = {{ subject.id }};
+  const ROUNDS = 10;  // Questions per MC / ID round
+
+  // ── MC / ID running state ────────────────────────────────────────────────
+  let mcTotal = 0, mcCorrect = 0, mcQ = 0, mcAnswered = false, mcCurrentCorrect = null;
+  let idTotal = 0, idCorrect = 0, idQ = 0, idAnswered = false, idCurrentCorrect = null;
+
+  // ── Mode switching ────────────────────────────────────────────────────────
+  function setMode(mode, btn) {
+    ['fc','mc','id'].forEach(m => {
+      document.getElementById(`panel-${m}`).classList.toggle('hidden', m !== mode);
+    });
+    document.querySelectorAll('.mode-tab').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+
+    if (mode === 'fc') startFC();
+    if (mode === 'mc') startMC();
+    if (mode === 'id') startID();
+  }
+
+  // ════════════════════════════════════════════════════════════════════════
+  //  FLASHCARDS
+  // ════════════════════════════════════════════════════════════════════════
+
+  async function startFC() {
+    const { ok, data } = await api(`/api/study/${SID}/fc/start`, { method: 'POST' });
+    if (ok) renderFC(data);
+  }
+
+  function renderFC(d) {
+    if (d.done) {
+      document.getElementById('fc-term').textContent = '🎉 All done!';
+      document.getElementById('fc-def').textContent  = 'Excellent work!';
+      document.getElementById('fc-pos').textContent  = 'Session complete';
+      document.getElementById('fc-pct').textContent  = '100% mastered';
+      document.getElementById('fc-bar').style.width  = '100%';
+      document.getElementById('rating-strip').classList.add('hidden');
+      updateFCStats(d);
+      return;
+    }
+
+    // Reset card flip
+    const card = document.getElementById('fc-card');
+    card.classList.remove('flipped');
+    document.getElementById('rating-strip').classList.add('hidden');
+
+    document.getElementById('fc-term').textContent = d.term;
+    document.getElementById('fc-def').textContent  = d.def;
+    document.getElementById('fc-pos').textContent  =
+      `Card ${d.position} of ${d.remaining}`;
+    document.getElementById('fc-pct').textContent  = `${d.pct}% mastered`;
+    document.getElementById('fc-bar').style.width  = d.pct + '%';
+    updateFCStats(d);
+  }
+
+  function updateFCStats(d) {
+    document.getElementById('fc-mastered').textContent   = d.mastered   ?? 0;
+    document.getElementById('fc-struggling').textContent = d.struggling ?? 0;
+    document.getElementById('fc-good').textContent       =
+      Math.max(0, (d.total ?? 0) - (d.mastered ?? 0) - (d.struggling ?? 0));
+    document.getElementById('fc-remaining').textContent  = d.remaining  ?? 0;
+  }
+
+  function flipCard() {
+    const card = document.getElementById('fc-card');
+    card.classList.toggle('flipped');
+    const flipped = card.classList.contains('flipped');
+    document.getElementById('rating-strip').classList.toggle('hidden', !flipped);
+  }
+
+  async function rateCard(rating) {
+    const { ok, data } = await api(`/api/study/${SID}/fc/rate`, {
+      method: 'POST',
+      body: JSON.stringify({ rating }),
+    });
+    if (ok) renderFC(data);
+  }
+
+  // ════════════════════════════════════════════════════════════════════════
+  //  MULTIPLE CHOICE
+  // ════════════════════════════════════════════════════════════════════════
+
+  async function startMC() {
+    mcTotal = 0; mcCorrect = 0; mcQ = 0; mcAnswered = false;
+    await api(`/api/study/${SID}/mc/reset`, { method: 'POST' });
+    document.getElementById('mc-done').classList.add('hidden');
+    renderMCScores();
+    await loadMCQuestion();
+  }
+
+  function resetMC() { startMC(); }
+
+  async function loadMCQuestion() {
+    if (mcQ >= ROUNDS) { showMCDone(); return; }
+
+    const { ok, data } = await api(`/api/study/${SID}/mc/question`);
+    if (!ok) { document.getElementById('mc-question').textContent = data.error; return; }
+
+    mcCurrentCorrect = data.correct;
+    mcAnswered       = false;
+
+    document.getElementById('mc-question').textContent = data.term;
+    document.getElementById('mc-feedback').classList.add('hidden');
+    document.getElementById('mc-next').classList.add('hidden');
+    document.getElementById('mc-pos').textContent =
+      `Question ${mcQ + 1} of ${ROUNDS}`;
+
+    // Build choice buttons
+    const list = document.getElementById('mc-choices');
+    list.innerHTML = '';
+    data.choices.forEach(c => {
+      const btn       = document.createElement('button');
+      btn.className   = 'choice-btn';
+      btn.textContent = c;
+      btn.onclick     = () => answerMC(btn, c, data.correct);
+      list.appendChild(btn);
+    });
+
+    renderMCScores();
+  }
+
+  async function answerMC(btn, chosen, correct) {
+    if (mcAnswered) return;
+    mcAnswered = true;
+
+    const { ok, data } = await api(`/api/study/${SID}/mc/answer`, {
+      method: 'POST',
+      body: JSON.stringify({ chosen, correct }),
+    });
+    if (!ok) return;
+
+    mcTotal   = data.mc_total;
+    mcCorrect = data.mc_correct;
+    mcQ++;
+
+    // Colour buttons
+    document.querySelectorAll('.choice-btn').forEach(b => {
+      b.disabled = true;
+      if (b.textContent.toLowerCase() === correct.toLowerCase()) b.classList.add('correct');
+      else if (b === btn && !data.correct) b.classList.add('wrong');
+    });
+
+    // Feedback
+    const fb = document.getElementById('mc-feedback');
+    fb.textContent = data.correct ? '✅ Correct!' : `❌ Wrong! Answer: ${correct}`;
+    fb.className   = 'feedback ' + (data.correct ? 'fb-ok' : 'fb-bad');
+    fb.classList.remove('hidden');
+    document.getElementById('mc-next').classList.remove('hidden');
+    renderMCScores();
+  }
+
+  function nextMC() { loadMCQuestion(); }
+
+  function showMCDone() {
+    const pct = mcTotal ? Math.round(mcCorrect / mcTotal * 100) : 0;
+    document.getElementById('mc-done-score').textContent = pct + '%';
+    document.getElementById('mc-done-sub').textContent =
+      `${mcCorrect} correct out of ${mcTotal} questions`;
+    document.getElementById('mc-done').classList.remove('hidden');
+    renderMCScores();
+  }
+
+  function renderMCScores() {
+    const pct   = mcTotal ? Math.round(mcCorrect / mcTotal * 100) : 0;
+    const wrong = mcTotal - mcCorrect;
+    document.getElementById('mc-scores').innerHTML = `
+      <span class="s-pill sp-total">📋 ${mcTotal}</span>
+      <span class="s-pill sp-correct">✅ ${mcCorrect}</span>
+      <span class="s-pill sp-wrong">❌ ${wrong}</span>
+      <span class="s-pill sp-pct">🎯 ${mcTotal ? pct + '%' : '—'}</span>`;
+    document.getElementById('mc-bar').style.width =
+      Math.min(mcQ / ROUNDS * 100, 100) + '%';
+    document.getElementById('mc-pct').textContent =
+      mcTotal ? pct + '%' : '—';
+  }
+
+  // ════════════════════════════════════════════════════════════════════════
+  //  IDENTIFICATION
+  // ════════════════════════════════════════════════════════════════════════
+
+  async function startID() {
+    idTotal = 0; idCorrect = 0; idQ = 0; idAnswered = false;
+    await api(`/api/study/${SID}/id/reset`, { method: 'POST' });
+    document.getElementById('id-done').classList.add('hidden');
+    renderIDScores();
+    await loadIDQuestion();
+  }
+
+  function resetID() { startID(); }
+
+  async function loadIDQuestion() {
+    if (idQ >= ROUNDS) { showIDDone(); return; }
+
+    const { ok, data } = await api(`/api/study/${SID}/id/question`);
+    if (!ok) { document.getElementById('id-question').textContent = data.error; return; }
+
+    idCurrentCorrect = data.correct;
+    idAnswered       = false;
+
+    document.getElementById('id-question').textContent = data.term;
+    document.getElementById('id-pos').textContent = `Question ${idQ + 1} of ${ROUNDS}`;
+
+    const inp       = document.getElementById('id-input');
+    inp.value       = '';
+    inp.className   = 'id-input';
+    inp.disabled    = false;
+    inp.focus();
+
+    document.getElementById('id-feedback').classList.add('hidden');
+    document.getElementById('id-submit').classList.remove('hidden');
+    document.getElementById('id-next').classList.add('hidden');
+    renderIDScores();
+  }
+
+  async function submitID() {
+    if (idAnswered || !idCurrentCorrect) return;
+    idAnswered = true;
+
+    const inp   = document.getElementById('id-input');
+    const given = inp.value;
+
+    const { ok, data } = await api(`/api/study/${SID}/id/answer`, {
+      method: 'POST',
+      body: JSON.stringify({ given, correct: idCurrentCorrect }),
+    });
+    if (!ok) return;
+
+    idTotal   = data.id_total;
+    idCorrect = data.id_correct;
+    idQ++;
+
+    inp.disabled  = true;
+    inp.className = 'id-input ' + (data.correct ? 'ok' : 'bad');
+
+    const fb = document.getElementById('id-feedback');
+    fb.textContent = data.correct ? '✅ Correct!' : `❌ Wrong! Answer: ${idCurrentCorrect}`;
+    fb.className   = 'feedback ' + (data.correct ? 'fb-ok' : 'fb-bad');
+    fb.classList.remove('hidden');
+
+    document.getElementById('id-submit').classList.add('hidden');
+    document.getElementById('id-next').classList.remove('hidden');
+    renderIDScores();
+  }
+
+  function nextID() { loadIDQuestion(); }
+
+  function showIDDone() {
+    const pct = idTotal ? Math.round(idCorrect / idTotal * 100) : 0;
+    document.getElementById('id-done-score').textContent = pct + '%';
+    document.getElementById('id-done-sub').textContent =
+      `${idCorrect} correct out of ${idTotal} questions`;
+    document.getElementById('id-done').classList.remove('hidden');
+    renderIDScores();
+  }
+
+  function renderIDScores() {
+    const pct   = idTotal ? Math.round(idCorrect / idTotal * 100) : 0;
+    const wrong = idTotal - idCorrect;
+    document.getElementById('id-scores').innerHTML = `
+      <span class="s-pill sp-total">📋 ${idTotal}</span>
+      <span class="s-pill sp-correct">✅ ${idCorrect}</span>
+      <span class="s-pill sp-wrong">❌ ${wrong}</span>
+      <span class="s-pill sp-pct">🎯 ${idTotal ? pct + '%' : '—'}</span>`;
+    document.getElementById('id-bar').style.width =
+      Math.min(idQ / ROUNDS * 100, 100) + '%';
+    document.getElementById('id-pct').textContent =
+      idTotal ? pct + '%' : '—';
+  }
+
+  // ── Enter key for ID ──────────────────────────────────────────────────────
+  document.getElementById('id-input').addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    if (!document.getElementById('id-next').classList.contains('hidden')) nextID();
+    else submitID();
+  });
+
+  // ── Boot: start flashcards ────────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', startFC);
+</script>
+{% endblock %}
