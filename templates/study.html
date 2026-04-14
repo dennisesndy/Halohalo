@@ -537,6 +537,11 @@
     fb.classList.remove('hidden');
     document.getElementById('mc-next').classList.remove('hidden');
     renderMCScores();
+    
+    const successSound = new Audio('/static/sound/correct.mp3');
+    if(data.correct) {
+      successSound.currentTime=0; successSound.play().catch(()=>{});
+    }
   }
 
   function nextMC() { loadMCQuestion(); }
@@ -626,6 +631,12 @@
     fb.textContent = data.correct ? '✅ Correct!' : `❌ Wrong! Answer: ${idCurrentCorrect}`;
     fb.className   = 'feedback ' + (data.correct ? 'fb-ok' : 'fb-bad');
     fb.classList.remove('hidden');
+
+    const successSound = new Audio('/static/sound/correct.mp3');
+    if(data.correct) {
+      successSound.currentTime=0; successSound.play().catch(()=>{});
+    }
+
 
     document.getElementById('id-submit').classList.add('hidden');
     document.getElementById('id-next').classList.remove('hidden');

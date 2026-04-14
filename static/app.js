@@ -10,10 +10,7 @@ let idTotal = 0, idCorrect = 0, idCurrent = null, idAnswered = false, idQuestion
 
 const QUESTIONS_PER_ROUND = 10;
 
-const successSound = new Audio('/static/static/sound/correct.mp3');
-successSound.onerror = (e) => {
-  console.error('Sound failed to load:', e);
-};
+
 
 
 /* ── Boot ────────────────────────────────────────────────────────────── */
@@ -277,12 +274,11 @@ async function answerMC(btn, chosen, correct) {
     body: JSON.stringify({ chosen, correct }),
   });
   const data = await res.json();
-  if (data.correct) {
-        // PLAY SOUND HERE
-        successSound.currentTime = 0;
-        successSound.play().catch(err => {
-          console.warn('Audio blocked:', err);
-    });
+  const successSound = new Audio('/static/sound/correct.mp3');
+
+  if(data.correct) {
+    successSound.currentTime=0; successSound.play().catch(()=>{});
+    }
   mcTotal   = data.mc_total;
   mcCorrect = data.mc_correct;
   mcQuestionCount++;
@@ -367,6 +363,8 @@ async function submitID() {
   if (idAnswered || !idCurrent) return;
   const inp   = document.getElementById('id-input');
   const given = inp.value;
+  const successSound = new Audio('/static/sound/correct.mp3');
+
 
   const res  = await fetch('/api/' + currentSid + '/id/answer', {
     method: 'POST',
@@ -374,12 +372,11 @@ async function submitID() {
     body: JSON.stringify({ given, correct: idCurrent }),
   });
   const data = await res.json();
-  if (data.correct) {
-        // PLAY SOUND HERE
-        successSound.currentTime = 0;
-        successSound.play().catch(err => {
-          console.warn('Audio blocked:', err);
-    });
+
+  if(data.correct) {
+    successSound.currentTime=0; successSound.play().catch(()=>{});
+  }
+
   idTotal    = data.id_total;
   idCorrect  = data.id_correct;
   idAnswered = true;
