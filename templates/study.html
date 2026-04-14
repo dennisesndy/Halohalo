@@ -26,7 +26,7 @@
   }
   .back-btn:hover { background: rgba(255,252,240,.22); }
   .nav-subject {
-    font-family: 'Lekkerli One', cursive;
+    font-family: 'Coiny', cursive;
     font-size: 1.2rem; color: var(--cream); letter-spacing: .02em;
   }
   .nav-deck {
@@ -163,7 +163,7 @@
     background: var(--glass-bg); backdrop-filter: blur(16px);
     border: 1px solid var(--glass-border); box-shadow: 0 2px 12px rgba(75,22,76,.07);
   }
-  .stat-num { font-family:'Lekkerli One',cursive; font-size: 1.8rem; line-height: 1; }
+  .stat-num { font-family:'Coiny',cursive; font-size: 1.8rem; line-height: 1; }
   .n-green { color: var(--green); }
   .n-red   { color: var(--red); }
   .n-yellow{ color: var(--yellow); }
@@ -237,8 +237,8 @@
     animation: popIn .3s ease;
   }
   .done-emoji  { font-size: 2.8rem; margin-bottom: 12px; }
-  .done-title  { font-family:'Lekkerli One',cursive; font-size:1.7rem; color:var(--purple); margin-bottom:6px; }
-  .done-score  { font-family:'Lekkerli One',cursive; font-size:3.8rem; color:var(--purple); line-height:1; margin:14px 0 6px; }
+  .done-title  { font-family:'Coiny',cursive; font-size:1.7rem; color:var(--purple); margin-bottom:6px; }
+  .done-score  { font-family:'Coiny',cursive; font-size:3.8rem; color:var(--purple); line-height:1; margin:14px 0 6px; }
   .done-sub    { color:var(--text-muted); font-size:.88rem; margin-bottom:22px; }
   .panel-relative { position: relative; }
 </style>
@@ -504,6 +504,7 @@
       btn.onclick     = () => answerMC(btn, c, data.correct);
       list.appendChild(btn);
     });
+    
 
     renderMCScores();
   }

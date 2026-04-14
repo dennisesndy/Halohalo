@@ -24,7 +24,7 @@ def build_export_html(deck_name: str, subjects: list) -> str:
         '<meta charset="UTF-8"/>\n'
         '<meta name="viewport" content="width=device-width,initial-scale=1.0"/>\n'
         f'<title>🍧 {safe_name} – Halo-Halo Reviewer</title>\n'
-        '<link href="https://fonts.googleapis.com/css2?family=Lekkerli+One'
+        '<link href="https://fonts.googleapis.com/css2?family=Leckerli+One'
         '&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet"/>\n'
         + _EXPORT_STYLE
         + f'</head>\n<body>\n'
@@ -53,7 +53,7 @@ body::before{content:'';position:fixed;width:500px;height:500px;
   top:-160px;right:-100px;border-radius:50%;filter:blur(70px);pointer-events:none;z-index:0}
 header{background:var(--purple);padding:16px 32px;display:flex;align-items:center;
   justify-content:space-between;box-shadow:0 2px 20px rgba(75,22,76,.28);position:relative;z-index:10}
-header h1{font-family:'Lekkerli One',cursive;font-size:1.6rem;color:var(--cream);letter-spacing:.02em}
+header h1{font-family:'Leckerli One',cursive;font-size:1.6rem;color:var(--cream);letter-spacing:.02em}
 .deck-label{color:rgba(255,252,240,.55);font-size:.85rem;font-weight:500}
 nav{background:rgba(75,22,76,.92);backdrop-filter:blur(12px);
   display:flex;gap:4px;justify-content:center;padding:10px 20px;position:relative;z-index:10}
@@ -115,7 +115,7 @@ nav button.active,nav button:hover{background:var(--pink);color:#fff;border-colo
 .fc-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin:14px 0 18px}
 .stat{background:var(--glass);backdrop-filter:blur(14px);border:1px solid var(--gborder);
   border-radius:14px;padding:12px 8px;text-align:center}
-.stat .n{font-family:'Lekkerli One',cursive;font-size:1.7rem;line-height:1}
+.stat .n{font-family:'Leckerli One',cursive;font-size:1.7rem;line-height:1}
 .n-g{color:var(--green)}.n-r{color:var(--red)}.n-y{color:var(--yellow)}.n-m{color:var(--muted)}
 .stat .l{font-size:.65rem;color:var(--muted);font-weight:700;margin-top:3px}
 .q-card{background:var(--glass);backdrop-filter:blur(18px);
@@ -159,8 +159,8 @@ nav button.active,nav button:hover{background:var(--pink);color:#fff;border-colo
   backdrop-filter:blur(20px);border:2px solid rgba(243,126,154,.3);
   border-radius:24px;margin-top:18px;
   box-shadow:0 8px 32px rgba(75,22,76,.12)}
-.done-box h2{font-family:'Lekkerli One',cursive;font-size:1.7rem;color:var(--purple);margin-bottom:8px}
-.done-score{font-family:'Lekkerli One',cursive;font-size:3.8rem;color:var(--purple);
+.done-box h2{font-family:'Leckerli One',cursive;font-size:1.7rem;color:var(--purple);margin-bottom:8px}
+.done-score{font-family:'Leckerli One',cursive;font-size:3.8rem;color:var(--purple);
   line-height:1;margin:14px 0 6px}
 .done-sub{color:var(--muted);font-size:.87rem;margin-bottom:22px}
 </style>

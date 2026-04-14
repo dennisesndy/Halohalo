@@ -1,6 +1,8 @@
 /* ── Reset & Base ─────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+@import url('https://fonts.googleapis.com/css2?family=Leckerli+One&family=Quicksand:wght@400;600&display=swap');
+
 :root {
   --ube:        #633971;
   --ube-dk:     #4a2856;
@@ -117,9 +119,9 @@ body {
 }
 
 .section-title {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Montserrat', serif;
   font-size: 1.8rem;
-  color: var(--ube);
+  color: var(--white);
 }
 
 .subject-count {

@@ -9,6 +9,7 @@ import json
 import os
 import random
 
+
 from flask import (
     Flask, render_template, request, jsonify,
     session, redirect, url_for, Response

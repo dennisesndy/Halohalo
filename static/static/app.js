@@ -10,6 +10,12 @@ let idTotal = 0, idCorrect = 0, idCurrent = null, idAnswered = false, idQuestion
 
 const QUESTIONS_PER_ROUND = 10;
 
+const successSound = new Audio('/static/static/sound/correct.mp3');
+successSound.onerror = (e) => {
+  console.error('Sound failed to load:', e);
+};
+
+
 /* ── Boot ────────────────────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
   loadSubjects();
@@ -271,6 +277,12 @@ async function answerMC(btn, chosen, correct) {
     body: JSON.stringify({ chosen, correct }),
   });
   const data = await res.json();
+  if (data.correct) {
+        // PLAY SOUND HERE
+        successSound.currentTime = 0;
+        successSound.play().catch(err => {
+          console.warn('Audio blocked:', err);
+    });
   mcTotal   = data.mc_total;
   mcCorrect = data.mc_correct;
   mcQuestionCount++;
@@ -362,6 +374,12 @@ async function submitID() {
     body: JSON.stringify({ given, correct: idCurrent }),
   });
   const data = await res.json();
+  if (data.correct) {
+        // PLAY SOUND HERE
+        successSound.currentTime = 0;
+        successSound.play().catch(err => {
+          console.warn('Audio blocked:', err);
+    });
   idTotal    = data.id_total;
   idCorrect  = data.id_correct;
   idAnswered = true;
