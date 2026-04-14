@@ -3,18 +3,23 @@
 
 {% block body %}
 <style>
+  /* ═══════════════════════════════════════════════════════════════════════
+     study.html — local styles
+     All design tokens live in base.html
+     ═══════════════════════════════════════════════════════════════════════ */
+
   .page { position: relative; z-index: 1; min-height: 100vh; }
 
-  /* ── Top nav ─────────────────────────────────────────────────────────── */
+  /* ── Top nav ──────────────────────────────────────────────────────────── */
   .topnav {
     background: var(--purple);
-    padding: 0 28px;
+    padding: 0 24px;
     display: flex; align-items: center; justify-content: space-between;
     height: 60px;
     box-shadow: 0 2px 16px rgba(75,22,76,.28);
     position: sticky; top: 0; z-index: 100;
   }
-  .nav-left { display: flex; align-items: center; gap: 12px; }
+  .nav-left { display: flex; align-items: center; gap: 10px; }
   .back-btn {
     display: flex; align-items: center; gap: 6px;
     background: rgba(255,252,240,.12);
@@ -25,44 +30,37 @@
     cursor: pointer; transition: background .2s; text-decoration: none;
   }
   .back-btn:hover { background: rgba(255,252,240,.22); }
+  .nav-info { display: flex; flex-direction: column; }
   .nav-subject {
     font-family: 'Coiny', cursive;
-    font-size: 1.2rem; color: var(--cream); letter-spacing: .02em;
+    font-size: 1.15rem; color: var(--cream); line-height: 1.1;
   }
-  .nav-deck {
-    font-size: .78rem; color: rgba(255,252,240,.5); font-weight: 500;
-  }
+  .nav-deck { font-size: .73rem; color: rgba(255,252,240,.5); font-weight: 500; }
 
-  /* ── Mode tabs ───────────────────────────────────────────────────────── */
+  /* ── Mode tabs ────────────────────────────────────────────────────────── */
   .mode-tabs {
     background: rgba(75,22,76,.92);
     backdrop-filter: blur(12px);
     display: flex; gap: 4px;
-    padding: 10px 24px;
+    padding: 10px 20px;
     border-bottom: 1px solid rgba(243,126,154,.15);
   }
   .mode-tab {
-    display: flex; align-items: center; gap: 7px;
+    display: flex; align-items: center; gap: 6px;
     background: transparent; border: none;
     color: rgba(255,252,240,.5);
-    border-radius: var(--r-pill); padding: 9px 20px;
-    font-family: 'Nunito', sans-serif; font-size: .88rem; font-weight: 700;
+    border-radius: var(--r-pill); padding: 8px 18px;
+    font-family: 'Nunito', sans-serif; font-size: .85rem; font-weight: 700;
     cursor: pointer; transition: all .2s;
   }
   .mode-tab:hover { color: var(--cream); background: rgba(255,252,240,.1); }
   .mode-tab.active { background: var(--pink); color: #fff; }
-  .tab-icon { font-size: .95rem; }
 
-  /* ── Study body ──────────────────────────────────────────────────────── */
-  .study-body {
-    max-width: 700px; margin: 0 auto;
-    padding: 32px 22px 100px;
-  }
-
-  /* ── Panel ───────────────────────────────────────────────────────────── */
+  /* ── Study body ───────────────────────────────────────────────────────── */
+  .study-body { max-width: 680px; margin: 0 auto; padding: 28px 20px 100px; }
   .panel { animation: fadeUp .3s ease both; }
 
-  /* ── Progress track ──────────────────────────────────────────────────── */
+  /* ── Progress track ───────────────────────────────────────────────────── */
   .progress-track {
     background: rgba(75,22,76,.1);
     border-radius: 8px; height: 8px; overflow: hidden; margin-bottom: 6px;
@@ -74,27 +72,53 @@
   }
   .progress-meta {
     display: flex; justify-content: space-between;
-    font-size: .78rem; color: var(--text-muted); font-weight: 600;
-    margin-bottom: 22px;
+    font-size: .76rem; color: var(--text-muted); font-weight: 600;
+    margin-bottom: 18px;
   }
   .progress-meta .pct { color: var(--pink); font-weight: 700; }
 
-  /* ── Score bar ───────────────────────────────────────────────────────── */
-  .score-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
-  .s-pill {
-    padding: 5px 14px; border-radius: var(--r-pill);
-    font-size: .78rem; font-weight: 700;
+  /* ── Colour-coded flashcard breakdown bar ─────────────────────────────── */
+  .breakdown-bar {
+    display: flex; height: 8px; border-radius: 8px; overflow: hidden;
+    margin-bottom: 4px; gap: 1px;
   }
+  .breakdown-seg {
+    height: 100%; transition: width .5s ease; min-width: 0;
+  }
+  .breakdown-legend {
+    display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px;
+  }
+  .legend-item {
+    display: flex; align-items: center; gap: 4px;
+    font-size: .68rem; font-weight: 700; color: var(--text-muted);
+  }
+  .legend-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  }
+
+  /* ── Score bar ────────────────────────────────────────────────────────── */
+  .score-bar { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 12px; }
+  .s-pill { padding: 4px 13px; border-radius: var(--r-pill); font-size: .76rem; font-weight: 700; }
   .sp-total   { background: var(--purple); color: var(--cream); }
   .sp-correct { background: var(--green-lt); color: var(--green-dk); }
   .sp-wrong   { background: var(--red-lt); color: var(--red-dk); }
   .sp-pct     { background: var(--pink); color: #fff; }
+  .sp-round   { background: rgba(75,22,76,.1); color: var(--purple); border: 1px solid rgba(75,22,76,.2); }
 
-  /* ── 3D Flashcard ────────────────────────────────────────────────────── */
+  /* ── Round notice banner ──────────────────────────────────────────────── */
+  .round-notice {
+    background: rgba(243,126,154,.12);
+    border: 1px solid rgba(243,126,154,.3);
+    border-radius: var(--r-md);
+    padding: 10px 16px;
+    font-size: .82rem; font-weight: 600; color: var(--purple);
+    margin-bottom: 14px; text-align: center;
+  }
+
+  /* ── 3D Flashcard ─────────────────────────────────────────────────────── */
   .card-scene {
-    perspective: 1200px;
-    height: 240px; cursor: pointer; margin-bottom: 18px;
-    user-select: none;
+    perspective: 1200px; height: 230px;
+    cursor: pointer; margin-bottom: 16px; user-select: none;
   }
   .card-3d {
     width: 100%; height: 100%; position: relative;
@@ -108,109 +132,136 @@
     border-radius: var(--r-xl);
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
-    padding: 36px; text-align: center;
+    padding: 32px; text-align: center;
   }
   .card-front {
-    background: var(--glass-bg);
-    backdrop-filter: blur(20px);
-    border: 2px solid rgba(243,126,154,.35);
-    box-shadow: 0 8px 32px rgba(75,22,76,.12), inset 0 1px 0 rgba(255,255,255,.6);
+    background: var(--glass-bg); backdrop-filter: blur(20px);
+    border: 2px solid rgba(243,126,154,.3);
+    box-shadow: 0 8px 28px rgba(75,22,76,.1), inset 0 1px 0 rgba(255,255,255,.6);
   }
+  /* Colour-coded border by last rating */
+  .card-front[data-rating="1"] { border-color: #ef4444; }
+  .card-front[data-rating="2"] { border-color: #f97316; }
+  .card-front[data-rating="3"] { border-color: #eab308; }
+  .card-front[data-rating="4"] { border-color: #84cc16; }
+  .card-front[data-rating="5"] { border-color: #22c55e; }
+
   .card-back {
     background: linear-gradient(135deg, var(--purple) 0%, var(--purple-lt) 100%);
     border: 2px solid rgba(243,126,154,.4);
-    box-shadow: 0 8px 32px rgba(75,22,76,.3);
-    transform: rotateY(180deg);
-    color: var(--cream);
+    box-shadow: 0 8px 28px rgba(75,22,76,.28);
+    transform: rotateY(180deg); color: var(--cream);
   }
   .face-tag {
-    font-size: .65rem; letter-spacing: .18em; text-transform: uppercase;
-    opacity: .45; margin-bottom: 12px; font-weight: 700;
+    font-size: .62rem; letter-spacing: .18em; text-transform: uppercase;
+    opacity: .4; margin-bottom: 10px; font-weight: 700;
   }
-  .face-text {
-    font-family: 'Nunito', sans-serif;
-    font-size: 1.35rem; font-weight: 700; line-height: 1.45;
-    max-width: 520px;
-  }
-  .face-hint { font-size: .75rem; opacity: .35; margin-top: 16px; font-style: italic; }
+  .face-text { font-size: 1.28rem; font-weight: 700; line-height: 1.45; max-width: 500px; }
+  .face-hint { font-size: .72rem; opacity: .32; margin-top: 14px; font-style: italic; }
 
-  /* ── Rating strip ────────────────────────────────────────────────────── */
-  .rating-strip { text-align: center; margin-bottom: 20px; }
-  .rating-label {
-    font-size: .78rem; color: var(--text-muted); font-weight: 600;
-    margin-bottom: 10px; display: block;
+  /* rating badge on card (shows current card's last rating) */
+  .rating-badge {
+    position: absolute; top: 12px; right: 14px;
+    padding: 3px 10px; border-radius: var(--r-pill);
+    font-size: .68rem; font-weight: 800; color: #fff;
+    opacity: .85;
   }
-  .rating-row { display: flex; justify-content: center; gap: 8px; }
+  .rb-0 { background: #9ca3af; }
+  .rb-1 { background: #ef4444; }
+  .rb-2 { background: #f97316; }
+  .rb-3 { background: #eab308; color: #1a0f22; }
+  .rb-4 { background: #84cc16; color: #1a0f22; }
+  .rb-5 { background: #22c55e; }
+
+  /* ── Rating strip ─────────────────────────────────────────────────────── */
+  .rating-strip { text-align: center; margin-bottom: 18px; }
+  .rating-label { font-size: .76rem; color: var(--text-muted); font-weight: 600; margin-bottom: 9px; display: block; }
+  .rating-row { display: flex; justify-content: center; gap: 7px; }
   .r-btn {
-    display: flex; flex-direction: column; align-items: center; gap: 3px;
-    border: none; border-radius: 14px; padding: 10px 14px;
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    border: none; border-radius: 12px; padding: 9px 12px;
     cursor: pointer; font-family: 'Nunito', sans-serif;
-    font-size: 1.05rem; font-weight: 800; color: #fff;
-    min-width: 56px; transition: transform .15s, filter .15s;
+    font-size: 1rem; font-weight: 800; color: #fff;
+    min-width: 52px; transition: transform .15s, filter .15s;
   }
-  .r-btn small { font-size: .6rem; font-weight: 600; opacity: .85; }
-  .r-btn:hover { transform: translateY(-4px); filter: brightness(1.1); }
+  .r-btn small { font-size: .58rem; font-weight: 600; opacity: .85; }
+  .r-btn:hover { transform: translateY(-3px); filter: brightness(1.1); }
   .r1 { background: #ef4444; } .r2 { background: #f97316; }
   .r3 { background: #eab308; color: #1a0f22; }
-  .r4 { background: #84cc16; color: #1a0f22; } .r5 { background: #22c55e; }
+  .r4 { background: #84cc16; color: #1a0f22; }
+  .r5 { background: #22c55e; }
 
-  /* ── FC stat cards ───────────────────────────────────────────────────── */
-  .fc-stats {
-    display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin: 16px 0;
-  }
+  /* ── FC stat grid ─────────────────────────────────────────────────────── */
+  .fc-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin: 14px 0 16px; }
   .stat-card {
-    border-radius: var(--r-md); padding: 14px 10px; text-align: center;
-    background: var(--glass-bg); backdrop-filter: blur(16px);
-    border: 1px solid var(--glass-border); box-shadow: 0 2px 12px rgba(75,22,76,.07);
+    border-radius: var(--r-md); padding: 12px 8px; text-align: center;
+    background: var(--glass-bg); backdrop-filter: blur(14px);
+    border: 1px solid var(--glass-border);
   }
-  .stat-num { font-family:'Coiny',cursive; font-size: 1.8rem; line-height: 1; }
-  .n-green { color: var(--green); }
-  .n-red   { color: var(--red); }
-  .n-yellow{ color: var(--yellow); }
-  .n-muted { color: var(--text-muted); }
-  .stat-lbl { font-size: .68rem; color: var(--text-muted); font-weight: 700; margin-top: 4px; }
+  .stat-num { font-family: 'Coiny', cursive; font-size: 1.7rem; line-height: 1; }
+  .n-gray   { color: #9ca3af; }
+  .n-red    { color: #ef4444; }
+  .n-orange { color: #f97316; }
+  .n-yellow { color: #eab308; }
+  .n-lime   { color: #84cc16; }
+  .n-green  { color: #22c55e; }
+  .stat-lbl { font-size: .62rem; color: var(--text-muted); font-weight: 700; margin-top: 3px; }
 
-  /* ── Question card ───────────────────────────────────────────────────── */
+  /* ── Question card ────────────────────────────────────────────────────── */
   .q-card {
     background: var(--glass-bg); backdrop-filter: blur(20px);
-    border: 2px solid rgba(243,126,154,.3);
+    border: 2px solid rgba(243,126,154,.28);
     border-radius: var(--r-xl);
-    padding: 34px 28px; text-align: center;
-    font-size: 1.25rem; font-weight: 700;
-    min-height: 110px; display: flex; align-items: center; justify-content: center;
-    margin-bottom: 20px; line-height: 1.5;
-    box-shadow: 0 6px 24px rgba(75,22,76,.1), inset 0 1px 0 rgba(255,255,255,.6);
+    padding: 30px 24px; text-align: center;
+    font-size: 1.2rem; font-weight: 700;
+    min-height: 100px; display: flex; align-items: center; justify-content: center;
+    margin-bottom: 18px; line-height: 1.5;
+    box-shadow: 0 5px 20px rgba(75,22,76,.09), inset 0 1px 0 rgba(255,255,255,.6);
   }
 
-  /* ── Choices ──────────────────────────────────────────────────────────── */
-  .choices { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+  /* ── MC Choices ───────────────────────────────────────────────────────── */
+  .choices { display: flex; flex-direction: column; gap: 9px; margin-bottom: 12px; }
   .choice-btn {
-    background: var(--glass-bg); backdrop-filter: blur(12px);
+    background: var(--glass-bg); backdrop-filter: blur(10px);
     border: 1.5px solid var(--border); color: var(--text);
-    border-radius: var(--r-lg); padding: 14px 20px; text-align: left;
-    font-family: 'Nunito', sans-serif; font-size: .95rem; font-weight: 500;
+    border-radius: var(--r-lg); padding: 13px 18px; text-align: left;
+    font-family: 'Nunito', sans-serif; font-size: .93rem; font-weight: 500;
     cursor: pointer; transition: all .18s; line-height: 1.4;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .choice-btn .choice-letter {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: rgba(75,22,76,.1); color: var(--purple);
+    font-size: .78rem; font-weight: 800;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   }
   .choice-btn:hover:not(:disabled) { border-color: var(--pink); background: rgba(243,126,154,.06); }
+  .choice-btn:hover:not(:disabled) .choice-letter { background: var(--pink); color: #fff; }
   .choice-btn.correct { background: var(--green-lt); border-color: var(--green); color: var(--green-dk); font-weight: 700; }
-  .choice-btn.wrong   { background: var(--red-lt);   border-color: var(--red);   color: var(--red-dk); }
+  .choice-btn.correct .choice-letter { background: var(--green); color: #fff; }
+  .choice-btn.wrong   { background: var(--red-lt); border-color: var(--red); color: var(--red-dk); }
+  .choice-btn.wrong .choice-letter { background: var(--red); color: #fff; }
   .choice-btn:disabled { cursor: default; }
 
-  /* ── Feedback ─────────────────────────────────────────────────────────── */
+  /* ── Feedback box ─────────────────────────────────────────────────────── */
   .feedback {
-    padding: 12px 18px; border-radius: var(--r-md);
-    font-weight: 700; font-size: .9rem; margin-bottom: 14px;
+    padding: 12px 16px; border-radius: var(--r-md);
+    font-size: .88rem; line-height: 1.5;
+    margin-bottom: 12px;
+    border-left: 4px solid transparent;
   }
-  .fb-ok  { background: var(--green-lt); color: var(--green-dk); }
-  .fb-bad { background: var(--red-lt);   color: var(--red-dk); }
+  .feedback .fb-label { font-weight: 800; margin-bottom: 3px; display: block; }
+  .fb-ok  { background: var(--green-lt); border-color: var(--green); color: var(--green-dk); }
+  .fb-bad { background: var(--red-lt);   border-color: var(--red);   color: var(--red-dk); }
+  .fb-thinking { background: rgba(75,22,76,.06); border-color: var(--purple); color: var(--text-muted); font-style: italic; }
 
   /* ── ID input ─────────────────────────────────────────────────────────── */
   .id-input {
-    width: 100%; padding: 14px 18px;
+    width: 100%; padding: 13px 17px;
     border: 1.5px solid var(--border); border-radius: var(--r-lg);
-    font-family: 'Nunito', sans-serif; font-size: 1rem;
-    background: var(--glass-bg); backdrop-filter: blur(12px);
-    color: var(--text); outline: none; margin-bottom: 12px;
+    font-family: 'Nunito', sans-serif; font-size: .98rem;
+    background: var(--glass-bg); backdrop-filter: blur(10px);
+    color: var(--text); outline: none; margin-bottom: 11px;
     transition: border-color .2s, box-shadow .2s;
   }
   .id-input:focus { border-color: var(--pink); box-shadow: 0 0 0 3px rgba(243,126,154,.15); }
@@ -218,29 +269,29 @@
   .id-input.bad { border-color: var(--red);   background: var(--red-lt); }
 
   /* ── Panel actions ────────────────────────────────────────────────────── */
-  .panel-actions { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
-  .panel-actions .btn.ml { margin-left: auto; }
+  .panel-actions { display: flex; align-items: center; gap: 9px; margin-top: 10px; }
+  .panel-actions .ml { margin-left: auto; }
 
   /* ── Done overlay ─────────────────────────────────────────────────────── */
   .done-wrap {
-    position: absolute; inset: 0;
-    background: rgba(255,252,240,.88);
-    backdrop-filter: blur(16px);
+    position: absolute; inset: -20px;
+    background: rgba(255,252,240,.9); backdrop-filter: blur(16px);
     display: flex; align-items: center; justify-content: center;
     border-radius: var(--r-xl); z-index: 20;
     animation: fadeIn .3s ease;
   }
   .done-card {
     background: var(--cream); border: 2px solid rgba(243,126,154,.35);
-    border-radius: var(--r-xl); padding: 44px 36px; text-align: center;
-    box-shadow: 0 16px 48px rgba(75,22,76,.18); max-width: 360px; width: 100%;
+    border-radius: var(--r-xl); padding: 40px 32px; text-align: center;
+    box-shadow: 0 16px 48px rgba(75,22,76,.18); max-width: 340px; width: 100%;
     animation: popIn .3s ease;
   }
-  .done-emoji  { font-size: 2.8rem; margin-bottom: 12px; }
-  .done-title  { font-family:'Coiny',cursive; font-size:1.7rem; color:var(--purple); margin-bottom:6px; }
-  .done-score  { font-family:'Coiny',cursive; font-size:3.8rem; color:var(--purple); line-height:1; margin:14px 0 6px; }
-  .done-sub    { color:var(--text-muted); font-size:.88rem; margin-bottom:22px; }
-  .panel-relative { position: relative; }
+  .done-emoji  { font-size: 2.6rem; margin-bottom: 10px; }
+  .done-title  { font-family: 'Coiny', cursive; font-size: 1.6rem; color: var(--purple); margin-bottom: 6px; }
+  .done-score  { font-family: 'Coiny', cursive; font-size: 3.6rem; color: var(--purple); line-height: 1; margin: 12px 0 4px; }
+  .done-sub    { color: var(--text-muted); font-size: .85rem; margin-bottom: 8px; }
+  .done-wrong  { color: var(--pink); font-size: .82rem; font-weight: 700; margin-bottom: 18px; }
+  .panel-relative { position: relative; min-height: 200px; }
 </style>
 
 <div class="page">
@@ -249,52 +300,54 @@
   <nav class="topnav">
     <div class="nav-left">
       <a class="back-btn" href="/deck/{{ subject.deck_id }}">← Back</a>
-      <div>
-        <div class="nav-subject">{{ subject.name }}</div>
-        <div class="nav-deck">{{ deck.emoji }} {{ deck.name }}</div>
+      <div class="nav-info">
+        <span class="nav-subject">{{ subject.name }}</span>
+        <span class="nav-deck">{{ deck.emoji }} {{ deck.name }}</span>
       </div>
     </div>
   </nav>
 
   <!-- Mode tabs -->
   <div class="mode-tabs">
-    <button class="mode-tab active" data-mode="fc" onclick="setMode('fc',this)">
-      <span class="tab-icon">📇</span> Flashcards
-    </button>
-    <button class="mode-tab" data-mode="mc" onclick="setMode('mc',this)">
-      <span class="tab-icon">🔘</span> Multiple Choice
-    </button>
-    <button class="mode-tab" data-mode="id" onclick="setMode('id',this)">
-      <span class="tab-icon">✏️</span> Identification
-    </button>
+    <button class="mode-tab active" data-mode="fc" onclick="setMode('fc',this)">📇 Flashcards</button>
+    <button class="mode-tab" data-mode="mc" onclick="setMode('mc',this)">🔘 Multiple Choice</button>
+    <button class="mode-tab" data-mode="id" onclick="setMode('id',this)">✏️ Identification</button>
   </div>
 
   <div class="study-body">
 
-    <!-- ═══ FLASHCARDS ═══════════════════════════════════════════════════ -->
+    <!-- ═══════════════════════════════════════════════════════════════════
+         FLASHCARDS
+         ═══════════════════════════════════════════════════════════════════ -->
     <div id="panel-fc" class="panel">
-      <div class="progress-track"><div class="progress-fill" id="fc-bar"></div></div>
+
+      <!-- Colour-coded breakdown bar -->
+      <div class="breakdown-bar" id="fc-breakdown-bar"></div>
+      <div class="breakdown-legend" id="fc-breakdown-legend"></div>
+
+      <!-- Standard progress -->
       <div class="progress-meta">
         <span id="fc-pos">Card — of —</span>
         <span class="pct" id="fc-pct">0% mastered</span>
       </div>
 
-      <!-- Card -->
+      <!-- Flashcard -->
       <div class="card-scene" id="card-scene" onclick="flipCard()">
         <div class="card-3d" id="fc-card">
-          <div class="card-face card-front">
+          <div class="card-face card-front" id="fc-front">
+            <div class="rating-badge rb-0" id="fc-rating-badge">New</div>
             <span class="face-tag">term</span>
             <p class="face-text" id="fc-term">Loading…</p>
             <span class="face-hint">tap to flip</span>
           </div>
           <div class="card-face card-back">
-            <span class="face-tag" style="color:rgba(255,252,240,.45)">definition</span>
+            <span class="face-tag" style="color:rgba(255,252,240,.42)">definition</span>
             <p class="face-text" id="fc-def"></p>
           </div>
         </div>
       </div>
 
-      <!-- Rating -->
+      <!-- Rating buttons (shown after flip) -->
       <div class="rating-strip hidden" id="rating-strip">
         <span class="rating-label">How well did you know this?</span>
         <div class="rating-row">
@@ -306,27 +359,35 @@
         </div>
       </div>
 
-      <!-- Stats -->
+      <!-- Stat grid — one tile per rating bucket -->
       <div class="fc-stats">
-        <div class="stat-card"><div class="stat-num n-green" id="fc-mastered">0</div><div class="stat-lbl">Mastered</div></div>
-        <div class="stat-card"><div class="stat-num n-red"   id="fc-struggling">0</div><div class="stat-lbl">Struggling</div></div>
-        <div class="stat-card"><div class="stat-num n-yellow" id="fc-good">0</div><div class="stat-lbl">Getting it</div></div>
-        <div class="stat-card"><div class="stat-num n-muted" id="fc-remaining">0</div><div class="stat-lbl">Remaining</div></div>
+        <div class="stat-card"><div class="stat-num n-gray"   id="fc-unseen">0</div><div class="stat-lbl">Unseen</div></div>
+        <div class="stat-card"><div class="stat-num n-red"    id="fc-again">0</div><div class="stat-lbl">Again</div></div>
+        <div class="stat-card"><div class="stat-num n-orange" id="fc-hard">0</div><div class="stat-lbl">Hard</div></div>
+        <div class="stat-card"><div class="stat-num n-yellow" id="fc-okay">0</div><div class="stat-lbl">Okay</div></div>
+        <div class="stat-card"><div class="stat-num n-lime"   id="fc-good">0</div><div class="stat-lbl">Good</div></div>
+        <div class="stat-card"><div class="stat-num n-green"  id="fc-mastered">0</div><div class="stat-lbl">Mastered</div></div>
       </div>
 
       <div class="panel-actions">
         <button class="btn btn-ghost" onclick="startFC()">↺ Restart</button>
       </div>
-    </div>
+    </div><!-- /panel-fc -->
 
-    <!-- ═══ MULTIPLE CHOICE ═══════════════════════════════════════════════ -->
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         MULTIPLE CHOICE
+         ═══════════════════════════════════════════════════════════════════ -->
     <div id="panel-mc" class="panel hidden panel-relative">
+
       <div class="score-bar" id="mc-scores"></div>
       <div class="progress-track"><div class="progress-fill" id="mc-bar" style="width:0%"></div></div>
       <div class="progress-meta">
         <span id="mc-pos">Question — of {{ ROUNDS }}</span>
         <span class="pct" id="mc-pct">—</span>
       </div>
+
+      <div class="round-notice hidden" id="mc-round-notice"></div>
 
       <div class="q-card" id="mc-question">Loading…</div>
       <div class="choices" id="mc-choices"></div>
@@ -341,22 +402,32 @@
       <div class="done-wrap hidden" id="mc-done">
         <div class="done-card">
           <div class="done-emoji">🎉</div>
-          <h2 class="done-title">Quiz Complete!</h2>
+          <h2 class="done-title">Round Complete!</h2>
           <div class="done-score" id="mc-done-score"></div>
-          <p class="done-sub" id="mc-done-sub"></p>
-          <button class="btn btn-purple btn-lg" onclick="resetMC()">Try Again</button>
+          <p class="done-sub"   id="mc-done-sub"></p>
+          <p class="done-wrong" id="mc-done-wrong"></p>
+          <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+            <button class="btn btn-ghost" onclick="resetMC()">Start Over</button>
+            <button class="btn btn-purple" id="mc-next-round-btn" onclick="nextRoundMC()">Next Round →</button>
+          </div>
         </div>
       </div>
-    </div>
+    </div><!-- /panel-mc -->
 
-    <!-- ═══ IDENTIFICATION ════════════════════════════════════════════════ -->
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         IDENTIFICATION
+         ═══════════════════════════════════════════════════════════════════ -->
     <div id="panel-id" class="panel hidden panel-relative">
+
       <div class="score-bar" id="id-scores"></div>
       <div class="progress-track"><div class="progress-fill" id="id-bar" style="width:0%"></div></div>
       <div class="progress-meta">
         <span id="id-pos">Question — of {{ ROUNDS }}</span>
         <span class="pct" id="id-pct">—</span>
       </div>
+
+      <div class="round-notice hidden" id="id-round-notice"></div>
 
       <div class="q-card" id="id-question">Loading…</div>
       <input class="id-input" id="id-input" type="text" placeholder="Type the definition…"/>
@@ -374,31 +445,54 @@
           <div class="done-emoji">🎉</div>
           <h2 class="done-title">Round Complete!</h2>
           <div class="done-score" id="id-done-score"></div>
-          <p class="done-sub" id="id-done-sub"></p>
-          <button class="btn btn-purple btn-lg" onclick="resetID()">Try Again</button>
+          <p class="done-sub"   id="id-done-sub"></p>
+          <p class="done-wrong" id="id-done-wrong"></p>
+          <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+            <button class="btn btn-ghost" onclick="resetID()">Start Over</button>
+            <button class="btn btn-purple" id="id-next-round-btn" onclick="nextRoundID()">Next Round →</button>
+          </div>
         </div>
       </div>
-    </div>
+    </div><!-- /panel-id -->
 
-  </div>
-</div>
+  </div><!-- /study-body -->
+</div><!-- /page -->
 {% endblock %}
 
 {% block scripts %}
 <script>
-  // ── Config ───────────────────────────────────────────────────────────────
+  // ════════════════════════════════════════════════════════════════════════
+  //  Config & state
+  // ════════════════════════════════════════════════════════════════════════
   const SID    = {{ subject.id }};
-  const ROUNDS = 10;  // Questions per MC / ID round
+  const ROUNDS = {{ ROUNDS }};
 
-  // ── MC / ID running state ────────────────────────────────────────────────
-  let mcTotal = 0, mcCorrect = 0, mcQ = 0, mcAnswered = false, mcCurrentCorrect = null;
-  let idTotal = 0, idCorrect = 0, idQ = 0, idAnswered = false, idCurrentCorrect = null;
+  // Rating label map
+  const RATING_LABELS = ['New','Again','Hard','Okay','Good','Easy'];
+  const RATING_COLORS = ['#9ca3af','#ef4444','#f97316','#eab308','#84cc16','#22c55e'];
 
-  // ── Mode switching ────────────────────────────────────────────────────────
+  // Sound effects (user-provided files)
+  const sfxCorrect = new Audio('/static/sound/correct.mp3');
+  const sfxWrong   = new Audio('/static/sound/wrong.mp3');   // placeholder
+
+  function playSound(correct) {
+    try {
+      if (correct) { sfxCorrect.currentTime = 0; sfxCorrect.play().catch(() => {}); }
+      else         { sfxWrong.currentTime   = 0; sfxWrong.play().catch(() => {}); }
+    } catch (_) {}
+  }
+
+  // MC / ID running counters (mirrored from server for display)
+  let mcTotal = 0, mcCorrect = 0, mcQ = 0, mcAnswered = false, mcCorrectDef = null, mcTerm = null;
+  let idTotal = 0, idCorrect = 0, idQ = 0, idAnswered = false, idCorrectDef = null, idTerm = null;
+
+  // ════════════════════════════════════════════════════════════════════════
+  //  Mode switching
+  // ════════════════════════════════════════════════════════════════════════
   function setMode(mode, btn) {
-    ['fc','mc','id'].forEach(m => {
-      document.getElementById(`panel-${m}`).classList.toggle('hidden', m !== mode);
-    });
+    ['fc','mc','id'].forEach(m =>
+      document.getElementById(`panel-${m}`).classList.toggle('hidden', m !== mode)
+    );
     document.querySelectorAll('.mode-tab').forEach(b => b.classList.remove('active'));
     if (btn) btn.classList.add('active');
 
@@ -417,37 +511,64 @@
   }
 
   function renderFC(d) {
+    // Breakdown colour bar
+    if (d.breakdown) {
+      const total = d.total || 1;
+      const bar   = document.getElementById('fc-breakdown-bar');
+      const leg   = document.getElementById('fc-breakdown-legend');
+      bar.innerHTML = d.breakdown.map(b =>
+        b.count > 0
+          ? `<div class="breakdown-seg" title="${b.label}: ${b.count}"
+               style="width:${Math.round(b.count/total*100)}%;background:${b.color}"></div>`
+          : ''
+      ).join('');
+      leg.innerHTML = d.breakdown.map(b =>
+        b.count > 0
+          ? `<span class="legend-item">
+               <span class="legend-dot" style="background:${b.color}"></span>
+               ${b.label} (${b.count})
+             </span>`
+          : ''
+      ).join('');
+    }
+
+    // Stat tiles
+    if (d.breakdown) {
+      document.getElementById('fc-unseen').textContent   = d.breakdown[0].count;
+      document.getElementById('fc-again').textContent    = d.breakdown[1].count;
+      document.getElementById('fc-hard').textContent     = d.breakdown[2].count;
+      document.getElementById('fc-okay').textContent     = d.breakdown[3].count;
+      document.getElementById('fc-good').textContent     = d.breakdown[4].count;
+      document.getElementById('fc-mastered').textContent = d.breakdown[5].count;
+    }
+
     if (d.done) {
       document.getElementById('fc-term').textContent = '🎉 All done!';
       document.getElementById('fc-def').textContent  = 'Excellent work!';
       document.getElementById('fc-pos').textContent  = 'Session complete';
       document.getElementById('fc-pct').textContent  = '100% mastered';
-      document.getElementById('fc-bar').style.width  = '100%';
       document.getElementById('rating-strip').classList.add('hidden');
-      updateFCStats(d);
       return;
     }
 
-    // Reset card flip
-    const card = document.getElementById('fc-card');
-    card.classList.remove('flipped');
-    document.getElementById('rating-strip').classList.add('hidden');
-
+    // Card content
     document.getElementById('fc-term').textContent = d.term;
     document.getElementById('fc-def').textContent  = d.def;
-    document.getElementById('fc-pos').textContent  =
-      `Card ${d.position} of ${d.remaining}`;
+    document.getElementById('fc-pos').textContent  = `Card ${d.position} of ${d.remaining}`;
     document.getElementById('fc-pct').textContent  = `${d.pct}% mastered`;
-    document.getElementById('fc-bar').style.width  = d.pct + '%';
-    updateFCStats(d);
-  }
 
-  function updateFCStats(d) {
-    document.getElementById('fc-mastered').textContent   = d.mastered   ?? 0;
-    document.getElementById('fc-struggling').textContent = d.struggling ?? 0;
-    document.getElementById('fc-good').textContent       =
-      Math.max(0, (d.total ?? 0) - (d.mastered ?? 0) - (d.struggling ?? 0));
-    document.getElementById('fc-remaining').textContent  = d.remaining  ?? 0;
+    // Colour-code card border by rating
+    const front = document.getElementById('fc-front');
+    front.setAttribute('data-rating', d.rating);
+
+    // Rating badge
+    const badge = document.getElementById('fc-rating-badge');
+    badge.textContent  = RATING_LABELS[d.rating] || 'New';
+    badge.className    = `rating-badge rb-${d.rating}`;
+
+    // Reset flip state
+    document.getElementById('fc-card').classList.remove('flipped');
+    document.getElementById('rating-strip').classList.add('hidden');
   }
 
   function flipCard() {
@@ -471,10 +592,10 @@
 
   async function startMC() {
     mcTotal = 0; mcCorrect = 0; mcQ = 0; mcAnswered = false;
-    await api(`/api/study/${SID}/mc/reset`, { method: 'POST' });
     document.getElementById('mc-done').classList.add('hidden');
-    renderMCScores();
-    await loadMCQuestion();
+    document.getElementById('mc-round-notice').classList.add('hidden');
+    const { ok } = await api(`/api/study/${SID}/mc/start`, { method: 'POST' });
+    if (ok) { renderMCScores(); await loadMCQuestion(); }
   }
 
   function resetMC() { startMC(); }
@@ -485,37 +606,43 @@
     const { ok, data } = await api(`/api/study/${SID}/mc/question`);
     if (!ok) { document.getElementById('mc-question').textContent = data.error; return; }
 
-    mcCurrentCorrect = data.correct;
-    mcAnswered       = false;
+    mcCorrectDef = data.correct;
+    mcTerm       = data.term;
+    mcAnswered   = false;
 
     document.getElementById('mc-question').textContent = data.term;
     document.getElementById('mc-feedback').classList.add('hidden');
     document.getElementById('mc-next').classList.add('hidden');
-    document.getElementById('mc-pos').textContent =
-      `Question ${mcQ + 1} of ${ROUNDS}`;
+    document.getElementById('mc-pos').textContent = `Question ${mcQ + 1} of ${ROUNDS}`;
 
-    // Build choice buttons
+    // Build choices with letter labels (A B C D)
+    const letters = ['A','B','C','D'];
     const list = document.getElementById('mc-choices');
     list.innerHTML = '';
-    data.choices.forEach(c => {
-      const btn       = document.createElement('button');
-      btn.className   = 'choice-btn';
-      btn.textContent = c;
-      btn.onclick     = () => answerMC(btn, c, data.correct);
+    data.choices.forEach((c, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'choice-btn';
+      btn.innerHTML = `<span class="choice-letter">${letters[i]}</span><span>${esc(c)}</span>`;
+      btn.onclick   = () => answerMC(btn, c, data.correct, data.term);
       list.appendChild(btn);
     });
-    
 
     renderMCScores();
   }
 
-  async function answerMC(btn, chosen, correct) {
+  async function answerMC(btn, chosen, correct, term) {
     if (mcAnswered) return;
     mcAnswered = true;
 
+    // Show "thinking" feedback while AI generates explanation
+    const fb = document.getElementById('mc-feedback');
+    fb.innerHTML  = '<span class="fb-label">🤔 Thinking…</span>';
+    fb.className  = 'feedback fb-thinking';
+    fb.classList.remove('hidden');
+
     const { ok, data } = await api(`/api/study/${SID}/mc/answer`, {
       method: 'POST',
-      body: JSON.stringify({ chosen, correct }),
+      body: JSON.stringify({ term, chosen, correct }),
     });
     if (!ok) return;
 
@@ -523,34 +650,58 @@
     mcCorrect = data.mc_correct;
     mcQ++;
 
+    // Sound
+    playSound(data.correct);
+
     // Colour buttons
     document.querySelectorAll('.choice-btn').forEach(b => {
       b.disabled = true;
-      if (b.textContent.toLowerCase() === correct.toLowerCase()) b.classList.add('correct');
+      const text = b.querySelector('span:last-child').textContent;
+      if (text.toLowerCase() === correct.toLowerCase()) b.classList.add('correct');
       else if (b === btn && !data.correct) b.classList.add('wrong');
     });
 
-    // Feedback
-    const fb = document.getElementById('mc-feedback');
-    fb.textContent = data.correct ? '✅ Correct!' : `❌ Wrong! Answer: ${correct}`;
-    fb.className   = 'feedback ' + (data.correct ? 'fb-ok' : 'fb-bad');
-    fb.classList.remove('hidden');
+    // AI explanation feedback
+    fb.innerHTML = `
+      <span class="fb-label">${data.correct ? '✅ Correct!' : '❌ Wrong'}</span>
+      ${esc(data.explanation)}
+    `;
+    fb.className = 'feedback ' + (data.correct ? 'fb-ok' : 'fb-bad');
+
     document.getElementById('mc-next').classList.remove('hidden');
     renderMCScores();
-    
-    const successSound = new Audio('/static/sound/correct.mp3');
-    if(data.correct) {
-      successSound.currentTime=0; successSound.play().catch(()=>{});
-    }
   }
 
   function nextMC() { loadMCQuestion(); }
 
+  async function nextRoundMC() {
+    document.getElementById('mc-done').classList.add('hidden');
+    const { ok, data } = await api(`/api/study/${SID}/mc/next-round`, { method: 'POST' });
+    if (!ok) return;
+
+    mcQ = 0; mcAnswered = false;
+
+    // Show round notice if there were wrong answers carried over
+    const notice = document.getElementById('mc-round-notice');
+    if (data.prev_wrong_count > 0) {
+      notice.textContent = `Round ${data.round} · Revisiting ${data.prev_wrong_count} missed question${data.prev_wrong_count > 1 ? 's' : ''} 🔄`;
+      notice.classList.remove('hidden');
+    } else {
+      notice.classList.add('hidden');
+    }
+
+    renderMCScores();
+    await loadMCQuestion();
+  }
+
   function showMCDone() {
-    const pct = mcTotal ? Math.round(mcCorrect / mcTotal * 100) : 0;
+    const pct   = mcTotal ? Math.round(mcCorrect / mcTotal * 100) : 0;
+    const wrong = mcTotal - mcCorrect;
     document.getElementById('mc-done-score').textContent = pct + '%';
-    document.getElementById('mc-done-sub').textContent =
-      `${mcCorrect} correct out of ${mcTotal} questions`;
+    document.getElementById('mc-done-sub').textContent   =
+      `${mcCorrect} correct out of ${mcTotal}`;
+    document.getElementById('mc-done-wrong').textContent =
+      wrong > 0 ? `${wrong} wrong answer${wrong > 1 ? 's' : ''} will reappear next round` : '🎉 Perfect round!';
     document.getElementById('mc-done').classList.remove('hidden');
     renderMCScores();
   }
@@ -565,8 +716,7 @@
       <span class="s-pill sp-pct">🎯 ${mcTotal ? pct + '%' : '—'}</span>`;
     document.getElementById('mc-bar').style.width =
       Math.min(mcQ / ROUNDS * 100, 100) + '%';
-    document.getElementById('mc-pct').textContent =
-      mcTotal ? pct + '%' : '—';
+    document.getElementById('mc-pct').textContent = mcTotal ? pct + '%' : '—';
   }
 
   // ════════════════════════════════════════════════════════════════════════
@@ -575,10 +725,10 @@
 
   async function startID() {
     idTotal = 0; idCorrect = 0; idQ = 0; idAnswered = false;
-    await api(`/api/study/${SID}/id/reset`, { method: 'POST' });
     document.getElementById('id-done').classList.add('hidden');
-    renderIDScores();
-    await loadIDQuestion();
+    document.getElementById('id-round-notice').classList.add('hidden');
+    const { ok } = await api(`/api/study/${SID}/id/start`, { method: 'POST' });
+    if (ok) { renderIDScores(); await loadIDQuestion(); }
   }
 
   function resetID() { startID(); }
@@ -589,17 +739,15 @@
     const { ok, data } = await api(`/api/study/${SID}/id/question`);
     if (!ok) { document.getElementById('id-question').textContent = data.error; return; }
 
-    idCurrentCorrect = data.correct;
-    idAnswered       = false;
+    idCorrectDef = data.correct;
+    idTerm       = data.term;
+    idAnswered   = false;
 
     document.getElementById('id-question').textContent = data.term;
     document.getElementById('id-pos').textContent = `Question ${idQ + 1} of ${ROUNDS}`;
 
-    const inp       = document.getElementById('id-input');
-    inp.value       = '';
-    inp.className   = 'id-input';
-    inp.disabled    = false;
-    inp.focus();
+    const inp = document.getElementById('id-input');
+    inp.value = ''; inp.className = 'id-input'; inp.disabled = false; inp.focus();
 
     document.getElementById('id-feedback').classList.add('hidden');
     document.getElementById('id-submit').classList.remove('hidden');
@@ -608,15 +756,21 @@
   }
 
   async function submitID() {
-    if (idAnswered || !idCurrentCorrect) return;
+    if (idAnswered || !idCorrectDef) return;
     idAnswered = true;
 
     const inp   = document.getElementById('id-input');
     const given = inp.value;
 
+    // Show thinking state
+    const fb = document.getElementById('id-feedback');
+    fb.innerHTML = '<span class="fb-label">🤔 Thinking…</span>';
+    fb.className = 'feedback fb-thinking';
+    fb.classList.remove('hidden');
+
     const { ok, data } = await api(`/api/study/${SID}/id/answer`, {
       method: 'POST',
-      body: JSON.stringify({ given, correct: idCurrentCorrect }),
+      body: JSON.stringify({ term: idTerm, given, correct: idCorrectDef }),
     });
     if (!ok) return;
 
@@ -624,19 +778,16 @@
     idCorrect = data.id_correct;
     idQ++;
 
+    playSound(data.correct);
+
     inp.disabled  = true;
     inp.className = 'id-input ' + (data.correct ? 'ok' : 'bad');
 
-    const fb = document.getElementById('id-feedback');
-    fb.textContent = data.correct ? '✅ Correct!' : `❌ Wrong! Answer: ${idCurrentCorrect}`;
-    fb.className   = 'feedback ' + (data.correct ? 'fb-ok' : 'fb-bad');
-    fb.classList.remove('hidden');
-
-    const successSound = new Audio('/static/sound/correct.mp3');
-    if(data.correct) {
-      successSound.currentTime=0; successSound.play().catch(()=>{});
-    }
-
+    fb.innerHTML = `
+      <span class="fb-label">${data.correct ? '✅ Correct!' : '❌ Wrong'}</span>
+      ${esc(data.explanation)}
+    `;
+    fb.className = 'feedback ' + (data.correct ? 'fb-ok' : 'fb-bad');
 
     document.getElementById('id-submit').classList.add('hidden');
     document.getElementById('id-next').classList.remove('hidden');
@@ -645,11 +796,33 @@
 
   function nextID() { loadIDQuestion(); }
 
+  async function nextRoundID() {
+    document.getElementById('id-done').classList.add('hidden');
+    const { ok, data } = await api(`/api/study/${SID}/id/next-round`, { method: 'POST' });
+    if (!ok) return;
+
+    idQ = 0; idAnswered = false;
+
+    const notice = document.getElementById('id-round-notice');
+    if (data.prev_wrong_count > 0) {
+      notice.textContent = `Round ${data.round} · Revisiting ${data.prev_wrong_count} missed question${data.prev_wrong_count > 1 ? 's' : ''} 🔄`;
+      notice.classList.remove('hidden');
+    } else {
+      notice.classList.add('hidden');
+    }
+
+    renderIDScores();
+    await loadIDQuestion();
+  }
+
   function showIDDone() {
-    const pct = idTotal ? Math.round(idCorrect / idTotal * 100) : 0;
+    const pct   = idTotal ? Math.round(idCorrect / idTotal * 100) : 0;
+    const wrong = idTotal - idCorrect;
     document.getElementById('id-done-score').textContent = pct + '%';
-    document.getElementById('id-done-sub').textContent =
-      `${idCorrect} correct out of ${idTotal} questions`;
+    document.getElementById('id-done-sub').textContent   =
+      `${idCorrect} correct out of ${idTotal}`;
+    document.getElementById('id-done-wrong').textContent =
+      wrong > 0 ? `${wrong} wrong answer${wrong > 1 ? 's' : ''} will reappear next round` : '🎉 Perfect round!';
     document.getElementById('id-done').classList.remove('hidden');
     renderIDScores();
   }
@@ -664,8 +837,7 @@
       <span class="s-pill sp-pct">🎯 ${idTotal ? pct + '%' : '—'}</span>`;
     document.getElementById('id-bar').style.width =
       Math.min(idQ / ROUNDS * 100, 100) + '%';
-    document.getElementById('id-pct').textContent =
-      idTotal ? pct + '%' : '—';
+    document.getElementById('id-pct').textContent = idTotal ? pct + '%' : '—';
   }
 
   // ── Enter key for ID ──────────────────────────────────────────────────────
@@ -675,7 +847,7 @@
     else submitID();
   });
 
-  // ── Boot: start flashcards ────────────────────────────────────────────────
+  // ── Boot ──────────────────────────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', startFC);
 </script>
 {% endblock %}

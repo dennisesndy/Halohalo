@@ -1,14 +1,20 @@
 """
 app.py
 ------
-Flask application entry point.
-All routes are grouped by feature: Auth, Decks, Subjects, Study, Export.
+Flask application — all routes organised by feature section.
+
+Sections:
+  AUTH      /api/auth/*
+  DASHBOARD /api/decks/*
+  DECK      /api/decks/<id>/subjects, /api/subjects/<id>
+  STUDY     /study/<id>, /api/study/<id>/fc|mc|id/*
+  EXPORT    /api/decks/<id>/export
 """
 
 import json
 import os
 import random
-
+import requests
 
 from flask import (
     Flask, render_template, request, jsonify,
@@ -25,8 +31,9 @@ from database import (
 from engine import (
     parse_notes,
     build_fc_session, fc_insert_after_rating, fc_stats,
-    generate_mc_question, check_mc,
+    generate_mc_question, check_mc, _is_true_false_item,
     generate_id_question, check_id,
+    build_round_queue, build_explanation_prompt,
     generate_export_html,
 )
 
@@ -34,12 +41,13 @@ from engine import (
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", os.urandom(32))
 
-# Initialise database on startup
+ROUND_SIZE = 10   # questions per MC / ID round
+
 with app.app_context():
     init_db()
 
 
-# ── Auth guard decorator ───────────────────────────────────────────────────
+# ── Auth guard ─────────────────────────────────────────────────────────────
 def login_required(f):
     from functools import wraps
     @wraps(f)
@@ -50,9 +58,47 @@ def login_required(f):
     return wrapper
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# ── AI explanation helper ──────────────────────────────────────────────────
+def _get_ai_explanation(term, correct_def, chosen, is_correct, mode="mc"):
+    """
+    Call the Anthropic API for a short contextual explanation.
+    Falls back to a static string if the call fails or the key is missing.
+    """
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        # No key — return a decent static fallback
+        if is_correct:
+            return f"✅ Correct! \"{correct_def}\" is the right answer."
+        else:
+            return f"The correct answer is: \"{correct_def}\"."
+
+    prompt = build_explanation_prompt(term, correct_def, chosen, is_correct, mode)
+    try:
+        resp = requests.post(
+            "https://api.anthropic.com/v1/messages",
+            headers={
+                "x-api-key":         api_key,
+                "anthropic-version": "2023-06-01",
+                "content-type":      "application/json",
+            },
+            json={
+                "model":      "claude-haiku-4-5-20251001",
+                "max_tokens": 120,
+                "messages":   [{"role": "user", "content": prompt}],
+            },
+            timeout=8,
+        )
+        data = resp.json()
+        return data["content"][0]["text"].strip()
+    except Exception:
+        if is_correct:
+            return f"✅ Correct! \"{correct_def}\" is the right answer."
+        return f"The correct answer is: \"{correct_def}\"."
+
+
+# =============================================================================
 # AUTH ROUTES
-# ─────────────────────────────────────────────────────────────────────────────
+# =============================================================================
 
 @app.route("/")
 def root():
@@ -96,9 +142,9 @@ def api_logout():
     return jsonify({"ok": True})
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# =============================================================================
 # DASHBOARD
-# ─────────────────────────────────────────────────────────────────────────────
+# =============================================================================
 
 @app.route("/dashboard")
 @login_required
@@ -111,27 +157,21 @@ def dashboard():
 def api_get_decks():
     uid   = session["user_id"]
     decks = get_decks(uid)
-
-    # Enrich each deck with subject count + overall mastery
     for deck in decks:
         subjects = get_subjects(deck["id"])
         deck["subject_count"] = len(subjects)
-
-        # Aggregate mastery across all subjects in this deck
-        total_mastery = 0
-        for subj in subjects:
-            items = json.loads(subj["items_json"])
-            total_mastery += get_subject_mastery(uid, subj["id"], len(items))
-
+        total_mastery = sum(
+            get_subject_mastery(uid, s["id"], len(json.loads(s["items_json"])))
+            for s in subjects
+        )
         deck["mastery"] = round(total_mastery / len(subjects)) if subjects else 0
-
     return jsonify(decks)
 
 
 @app.route("/api/decks", methods=["POST"])
 @login_required
 def api_create_deck():
-    data = request.json or {}
+    data  = request.json or {}
     name  = data.get("name", "").strip()
     emoji = data.get("emoji", "📚")
     if not name:
@@ -155,9 +195,9 @@ def api_delete_deck(deck_id):
     return jsonify({"ok": True})
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# DECK VIEW  (subjects inside a deck)
-# ─────────────────────────────────────────────────────────────────────────────
+# =============================================================================
+# DECK (subjects inside a deck)
+# =============================================================================
 
 @app.route("/deck/<int:deck_id>")
 @login_required
@@ -175,8 +215,8 @@ def api_get_subjects(deck_id):
     subjects = get_subjects(deck_id)
     result   = []
     for s in subjects:
-        items   = json.loads(s["items_json"])
-        mastery = get_subject_mastery(uid, s["id"], len(items))
+        items    = json.loads(s["items_json"])
+        mastery  = get_subject_mastery(uid, s["id"], len(items))
         mc_score = get_score(uid, s["id"], "mc")
         id_score = get_score(uid, s["id"], "id")
         result.append({
@@ -196,14 +236,11 @@ def api_create_subject(deck_id):
     data = request.json or {}
     name = data.get("name", "").strip()
     raw  = data.get("raw", "")
-
     if not name:
         return jsonify({"error": "Subject name is required."}), 400
-
     items, errors = parse_notes(raw)
     if len(items) < 2:
         return jsonify({"error": "Need at least 2 valid items (term [TAB] definition)."}), 400
-
     sid = create_subject(deck_id, name, items)
     return jsonify({"id": sid, "name": name, "count": len(items), "skipped": errors})
 
@@ -228,9 +265,9 @@ def api_delete_subject(subject_id):
     return jsonify({"ok": True})
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# =============================================================================
 # STUDY PAGE
-# ─────────────────────────────────────────────────────────────────────────────
+# =============================================================================
 
 @app.route("/study/<int:subject_id>")
 @login_required
@@ -239,31 +276,29 @@ def study_page(subject_id):
     if not subj:
         return redirect(url_for("dashboard"))
     deck = get_deck(subj["deck_id"])
-    return render_template("study.html",
-                           subject=subj, deck=deck,
+    return render_template("study.html", subject=subj, deck=deck, ROUNDS=ROUND_SIZE,
                            username=session["username"])
 
 
-# ── Flashcard endpoints ───────────────────────────────────────────────────
+# ── Flashcard ──────────────────────────────────────────────────────────────
 
 @app.route("/api/study/<int:subject_id>/fc/start", methods=["POST"])
 @login_required
 def fc_start(subject_id):
-    """Build / reset flashcard session."""
+    """Build / reset flashcard session using saved progress."""
     uid   = session["user_id"]
     subj  = get_subject(subject_id)
     items = json.loads(subj["items_json"])
     prog  = get_progress(uid, subject_id)
-
     deck  = build_fc_session(items, prog)
     session["fc"] = {"deck": deck, "index": 0, "sid": subject_id}
-    return jsonify(fc_current_state())
+    return jsonify(_fc_state())
 
 
 @app.route("/api/study/<int:subject_id>/fc/rate", methods=["POST"])
 @login_required
 def fc_rate(subject_id):
-    """Rate current card and advance."""
+    """Rate the current card and advance the deck."""
     uid    = session["user_id"]
     rating = request.json.get("rating", 3)
     fc     = session.get("fc", {})
@@ -276,21 +311,18 @@ def fc_rate(subject_id):
 
     if index < len(deck):
         term = deck[index]["term"]
-        # Save rating to DB
         upsert_progress(uid, subject_id, term, rating)
-        # Re-shuffle deck with SM-2 logic
         deck = fc_insert_after_rating(deck, index, rating)
 
     fc["deck"]  = deck
-    fc["index"] = index   # index stays; card was removed and re-inserted
+    fc["index"] = index
     session["fc"] = fc
     session.modified = True
+    return jsonify(_fc_state())
 
-    return jsonify(fc_current_state())
 
-
-def fc_current_state():
-    """Serialize current FC session state for the frontend."""
+def _fc_state():
+    """Serialize current flashcard state for the frontend."""
     fc    = session.get("fc", {})
     deck  = fc.get("deck", [])
     index = fc.get("index", 0)
@@ -301,58 +333,151 @@ def fc_current_state():
 
     card = deck[index]
     return {
-        "done":  False,
-        "term":  card["term"],
-        "def":   card["def"],
-        "rating": card.get("rating", 0),
+        "done":    False,
+        "term":    card["term"],
+        "def":     card["def"],
+        "rating":  card.get("rating", 0),
         **stats,
     }
 
 
-# ── Multiple Choice endpoints ─────────────────────────────────────────────
+# ── Multiple Choice ────────────────────────────────────────────────────────
+
+def _mc_state(subject_id):
+    """Return (or create) the MC session dict."""
+    key = f"mc_{subject_id}"
+    if key not in session:
+        session[key] = {
+            "correct": 0, "total": 0,
+            "round": 1,
+            "queue": [],        # terms remaining this round
+            "used":  [],        # terms asked this round
+            "wrong": [],        # wrong answers this round
+            "prev_wrong": [],   # wrong answers last round (for next-round priority)
+        }
+    return session[key]
+
+
+@app.route("/api/study/<int:subject_id>/mc/start", methods=["POST"])
+@login_required
+def mc_start(subject_id):
+    """Reset and start a fresh MC session."""
+    subj  = get_subject(subject_id)
+    items = json.loads(subj["items_json"])
+    session.pop(f"mc_{subject_id}", None)
+    state = _mc_state(subject_id)
+    state["queue"] = build_round_queue(items, [], 1, ROUND_SIZE)
+    session[f"mc_{subject_id}"] = state
+    session.modified = True
+    return jsonify({"ok": True, "round": 1, "queue_size": len(state["queue"])})
+
 
 @app.route("/api/study/<int:subject_id>/mc/question", methods=["GET"])
 @login_required
 def mc_question(subject_id):
+    """Return next MC question from the round queue."""
     subj  = get_subject(subject_id)
     items = json.loads(subj["items_json"])
-    if len(items) < 4:
-        return jsonify({"error": "Need at least 4 items for Multiple Choice."}), 400
+    if len(items) < 2:
+        return jsonify({"error": "Need at least 2 items."}), 400
 
-    used  = session.get("mc_used", [])
-    q     = generate_mc_question(items, used)
+    state = _mc_state(subject_id)
 
-    # Track recently used to avoid repeats
-    used.append(q["term"])
-    if len(used) > len(items) // 2:
-        used = used[-(len(items) // 2):]
-    session["mc_used"] = used
+    # Rebuild queue if somehow empty (defensive)
+    if not state["queue"]:
+        state["queue"] = build_round_queue(
+            items, state.get("prev_wrong", []), state.get("round", 1), ROUND_SIZE)
 
+    term_to_ask = state["queue"].pop(0)
+    state["used"].append(term_to_ask)
+
+    item_map = {i["term"]: i for i in items}
+    item     = item_map.get(term_to_ask) or random.choice(items)
+    correct  = item["def"]
+
+    # Build choices
+    if _is_true_false_item(item):
+        q = {
+            "term":    item["term"],
+            "correct": correct.strip().capitalize(),
+            "choices": ["True", "False"],
+            "is_tf":   True,
+        }
+    else:
+        others      = [i["def"] for i in items if i["def"].lower() != correct.lower()]
+        distractors = random.sample(others, min(3, len(others)))
+        choices     = distractors + [correct]
+        random.shuffle(choices)
+        q = {
+            "term":    item["term"],
+            "correct": correct,
+            "choices": choices,
+            "is_tf":   False,
+        }
+
+    q["round"]     = state.get("round", 1)
+    q["remaining"] = len(state["queue"])
+
+    session[f"mc_{subject_id}"] = state
+    session.modified = True
     return jsonify(q)
 
 
 @app.route("/api/study/<int:subject_id>/mc/answer", methods=["POST"])
 @login_required
 def mc_answer(subject_id):
-    uid     = session["user_id"]
-    data    = request.json or {}
-    correct = check_mc(data.get("chosen", ""), data.get("correct", ""))
+    """Record MC answer and return AI explanation."""
+    uid  = session["user_id"]
+    data = request.json or {}
+    term        = data.get("term", "")
+    chosen      = data.get("chosen", "")
+    correct_def = data.get("correct", "")
+    is_correct  = check_mc(chosen, correct_def)
 
-    # Update running score in session
-    mc = session.get(f"mc_{subject_id}", {"correct": 0, "total": 0})
-    mc["total"]   += 1
-    mc["correct"] += 1 if correct else 0
-    session[f"mc_{subject_id}"] = mc
+    state = _mc_state(subject_id)
+    state["total"]   += 1
+    state["correct"] += 1 if is_correct else 0
+    if not is_correct:
+        if term not in state["wrong"]:
+            state["wrong"].append(term)
+
+    session[f"mc_{subject_id}"] = state
     session.modified = True
+    upsert_score(uid, subject_id, "mc", state["correct"], state["total"])
 
-    # Persist to DB
-    upsert_score(uid, subject_id, "mc", mc["correct"], mc["total"])
+    explanation = _get_ai_explanation(term, correct_def, chosen, is_correct, "mc")
+    pct = round(state["correct"] / state["total"] * 100) if state["total"] else 0
 
     return jsonify({
-        "correct":    correct,
-        "mc_correct": mc["correct"],
-        "mc_total":   mc["total"],
-        "mc_pct":     round(mc["correct"] / mc["total"] * 100),
+        "correct":     is_correct,
+        "explanation": explanation,
+        "mc_correct":  state["correct"],
+        "mc_total":    state["total"],
+        "mc_pct":      pct,
+    })
+
+
+@app.route("/api/study/<int:subject_id>/mc/next-round", methods=["POST"])
+@login_required
+def mc_next_round(subject_id):
+    """Start the next MC round, prioritising previously-wrong answers."""
+    subj  = get_subject(subject_id)
+    items = json.loads(subj["items_json"])
+    state = _mc_state(subject_id)
+
+    state["round"]      += 1
+    state["prev_wrong"]  = state["wrong"][:]
+    state["wrong"]       = []
+    state["used"]        = []
+    state["queue"]       = build_round_queue(
+        items, state["prev_wrong"], state["round"], ROUND_SIZE)
+
+    session[f"mc_{subject_id}"] = state
+    session.modified = True
+    return jsonify({
+        "ok":    True,
+        "round": state["round"],
+        "prev_wrong_count": len(state["prev_wrong"]),
     })
 
 
@@ -360,83 +485,143 @@ def mc_answer(subject_id):
 @login_required
 def mc_reset(subject_id):
     session.pop(f"mc_{subject_id}", None)
-    session.pop("mc_used", None)
     return jsonify({"ok": True})
 
 
-# ── Identification endpoints ──────────────────────────────────────────────
+# ── Identification ─────────────────────────────────────────────────────────
+
+def _id_state(subject_id):
+    """Return (or create) the ID session dict."""
+    key = f"id_{subject_id}"
+    if key not in session:
+        session[key] = {
+            "correct": 0, "total": 0,
+            "round": 1,
+            "queue": [], "used": [], "wrong": [], "prev_wrong": [],
+        }
+    return session[key]
+
+
+@app.route("/api/study/<int:subject_id>/id/start", methods=["POST"])
+@login_required
+def id_start(subject_id):
+    """Reset and start a fresh ID session."""
+    subj  = get_subject(subject_id)
+    items = json.loads(subj["items_json"])
+    session.pop(f"id_{subject_id}", None)
+    state = _id_state(subject_id)
+    state["queue"] = build_round_queue(items, [], 1, ROUND_SIZE)
+    session[f"id_{subject_id}"] = state
+    session.modified = True
+    return jsonify({"ok": True, "round": 1, "queue_size": len(state["queue"])})
+
 
 @app.route("/api/study/<int:subject_id>/id/question", methods=["GET"])
 @login_required
 def id_question(subject_id):
     subj  = get_subject(subject_id)
     items = json.loads(subj["items_json"])
-    used  = session.get("id_used", [])
-    q     = generate_id_question(items, used)
+    state = _id_state(subject_id)
 
-    used.append(q["term"])
-    if len(used) > len(items) // 2:
-        used = used[-(len(items) // 2):]
-    session["id_used"] = used
+    if not state["queue"]:
+        state["queue"] = build_round_queue(
+            items, state.get("prev_wrong", []), state.get("round", 1), ROUND_SIZE)
 
-    return jsonify(q)
+    term_to_ask = state["queue"].pop(0)
+    state["used"].append(term_to_ask)
+
+    item_map = {i["term"]: i for i in items}
+    item     = item_map.get(term_to_ask) or random.choice(items)
+
+    session[f"id_{subject_id}"] = state
+    session.modified = True
+    return jsonify({
+        "term":      item["term"],
+        "correct":   item["def"],
+        "round":     state.get("round", 1),
+        "remaining": len(state["queue"]),
+    })
 
 
 @app.route("/api/study/<int:subject_id>/id/answer", methods=["POST"])
 @login_required
 def id_answer(subject_id):
-    uid     = session["user_id"]
-    data    = request.json or {}
-    correct = check_id(data.get("given", ""), data.get("correct", ""))
+    uid  = session["user_id"]
+    data = request.json or {}
+    term        = data.get("term", "")
+    given       = data.get("given", "")
+    correct_def = data.get("correct", "")
+    is_correct  = check_id(given, correct_def)
 
-    id_ = session.get(f"id_{subject_id}", {"correct": 0, "total": 0})
-    id_["total"]   += 1
-    id_["correct"] += 1 if correct else 0
-    session[f"id_{subject_id}"] = id_
+    state = _id_state(subject_id)
+    state["total"]   += 1
+    state["correct"] += 1 if is_correct else 0
+    if not is_correct and term not in state["wrong"]:
+        state["wrong"].append(term)
+
+    session[f"id_{subject_id}"] = state
     session.modified = True
+    upsert_score(uid, subject_id, "id", state["correct"], state["total"])
 
-    upsert_score(uid, subject_id, "id", id_["correct"], id_["total"])
+    explanation = _get_ai_explanation(term, correct_def, given, is_correct, "id")
+    pct = round(state["correct"] / state["total"] * 100) if state["total"] else 0
 
     return jsonify({
-        "correct":    correct,
-        "id_correct": id_["correct"],
-        "id_total":   id_["total"],
-        "id_pct":     round(id_["correct"] / id_["total"] * 100),
+        "correct":     is_correct,
+        "explanation": explanation,
+        "id_correct":  state["correct"],
+        "id_total":    state["total"],
+        "id_pct":      pct,
     })
+
+
+@app.route("/api/study/<int:subject_id>/id/next-round", methods=["POST"])
+@login_required
+def id_next_round(subject_id):
+    subj  = get_subject(subject_id)
+    items = json.loads(subj["items_json"])
+    state = _id_state(subject_id)
+    state["round"]      += 1
+    state["prev_wrong"]  = state["wrong"][:]
+    state["wrong"]       = []
+    state["used"]        = []
+    state["queue"]       = build_round_queue(
+        items, state["prev_wrong"], state["round"], ROUND_SIZE)
+    session[f"id_{subject_id}"] = state
+    session.modified = True
+    return jsonify({"ok": True, "round": state["round"],
+                    "prev_wrong_count": len(state["prev_wrong"])})
 
 
 @app.route("/api/study/<int:subject_id>/id/reset", methods=["POST"])
 @login_required
 def id_reset(subject_id):
     session.pop(f"id_{subject_id}", None)
-    session.pop("id_used", None)
     return jsonify({"ok": True})
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# =============================================================================
 # EXPORT
-# ─────────────────────────────────────────────────────────────────────────────
+# =============================================================================
 
 @app.route("/api/decks/<int:deck_id>/export")
 @login_required
 def export_deck(deck_id):
     deck     = get_deck(deck_id)
     subjects = get_subjects(deck_id)
-
     payload  = [
         {"name": s["name"], "items": json.loads(s["items_json"])}
         for s in subjects
     ]
-    html = generate_export_html(deck["name"], payload)
-
+    html      = generate_export_html(deck["name"], payload)
     safe_name = "".join(c for c in deck["name"] if c.isalnum() or c in " _-")
     return Response(
         html,
         mimetype="text/html",
-        headers={"Content-Disposition": f'attachment; filename="{safe_name}_Reviewer.html"'}
+        headers={"Content-Disposition": f'attachment; filename="{safe_name}_Reviewer.html"'},
     )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# =============================================================================
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
