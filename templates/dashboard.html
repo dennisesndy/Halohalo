@@ -1,605 +1,275 @@
 {% extends "base.html" %}
 {% block title %} · Dashboard{% endblock %}
-
 {% block body %}
 <style>
-  /* ── Layout ───────────────────────────────────────────────────────────── */
-  .page { position: relative; z-index: 1; min-height: 100vh; }
+  .page { max-width: 900px; margin: 0 auto; padding: 0 16px 60px; }
 
-  /* ── Top nav ──────────────────────────────────────────────────────────── */
-  .topnav {
-    background: var(--purple);
-    padding: 0 32px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    height: 64px;
-    box-shadow: 0 2px 20px rgba(75,22,76,.25);
-    position: sticky;
-    top: 0;
-    z-index: 100;
+  /* ── greeting strip ──────────────────────────────────────────────── */
+  .greeting {
+    padding: 28px 0 20px;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
   }
-  .nav-brand {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    text-decoration: none;
+  .greeting-text h2 {
+    font-family: 'Coiny', cursive; font-size: 1.7rem; color: var(--purple); line-height: 1.1;
   }
-  .nav-brand-emoji { font-size: 1.6rem; }
-  .nav-brand-text {
-    font-family: 'Coiny', cursive;
-    font-size: 1.5rem;
-    color: var(--cream);
-    letter-spacing: .02em;
+  .greeting-text p { font-size: .82rem; color: var(--muted); margin-top: 3px; }
+
+  /* ── stat row ────────────────────────────────────────────────────── */
+  .stats { display: flex; gap: 10px; margin-bottom: 28px; }
+  .stat-pill {
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px 16px; flex: 1; text-align: center;
   }
-  .nav-right { display: flex; align-items: center; gap: 12px; }
-  .nav-user {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: rgba(255,252,240,.75);
-    font-size: .88rem;
-    font-weight: 600;
-  }
-  .avatar {
-    width: 34px; height: 34px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--pink), var(--purple-lt));
-    display: flex; align-items: center; justify-content: center;
-    font-size: .85rem;
-    font-weight: 700;
-    color: #fff;
-    flex-shrink: 0;
+  .stat-num { font-family: 'Coiny', cursive; font-size: 1.5rem; color: var(--purple); }
+  .stat-lbl { font-size: .7rem; color: var(--muted); font-weight: 600; margin-top: 1px; }
+
+  /* ── section header ──────────────────────────────────────────────── */
+  .sec-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .sec-title { font-family: 'Coiny', cursive; font-size: 1.25rem; color: var(--text); }
+
+  /* ── deck grid ───────────────────────────────────────────────────── */
+  .deck-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
   }
 
-  /* ── Hero section ─────────────────────────────────────────────────────── */
-  .hero {
-    background: linear-gradient(135deg, var(--purple) 0%, var(--purple-lt) 100%);
-    padding: 52px 40px 80px;
-    position: relative;
-    overflow: hidden;
-  }
-  .hero::before {
-    content: '';
-    position: absolute;
-    width: 400px; height: 400px;
-    background: radial-gradient(circle, rgba(243,126,154,.22) 0%, transparent 65%);
-    top: -120px; right: -80px;
-    border-radius: 50%;
-    pointer-events: none;
-  }
-  .hero::after {
-    content: '';
-    position: absolute;
-    width: 280px; height: 280px;
-    background: radial-gradient(circle, rgba(255,252,240,.08) 0%, transparent 65%);
-    bottom: -60px; left: 40px;
-    border-radius: 50%;
-    pointer-events: none;
-  }
-  .hero-content { position: relative; z-index: 1; max-width: 600px; }
-  .hero-greeting {
-    color: rgba(255,252,240,.6);
-    font-size: .9rem;
-    font-weight: 500;
-    margin-bottom: 6px;
-  }
-  .hero-title {
-    font-family: 'Coiny', cursive;
-    font-size: 2.6rem;
-    color: var(--cream);
-    line-height: 1.1;
-    margin-bottom: 10px;
-  }
-  .hero-sub {
-    color: rgba(255,252,240,.65);
-    font-size: .95rem;
-    font-weight: 400;
-    line-height: 1.5;
-  }
-
-  /* ── Main content ─────────────────────────────────────────────────────── */
-  .main {
-    max-width: 1100px;
-    margin: -36px auto 0;
-    padding: 0 32px 80px;
-    position: relative;
-    z-index: 2;
-  }
-
-  /* ── Section header ───────────────────────────────────────────────────── */
-  .section-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 22px;
-  }
-  .section-title {
-    font-family: 'Coiny', cursive;
-    font-size: 1.5rem;
-    color: var(--purple);
-  }
-
-  /* ── Carousel wrapper ─────────────────────────────────────────────────── */
-  .carousel-wrap {
-    position: relative;
-  }
-  .carousel {
-    display: flex;
-    gap: 20px;
-    overflow-x: auto;
-    padding: 8px 4px 24px;
-    scroll-snap-type: x mandatory;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-  .carousel::-webkit-scrollbar { display: none; }
-
-  /* scroll buttons */
-  .carousel-btn {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 38px; height: 38px;
-    border-radius: 50%;
-    background: var(--purple);
-    color: var(--cream);
-    border: none;
-    cursor: pointer;
-    font-size: 1rem;
-    z-index: 10;
-    box-shadow: 0 4px 16px rgba(75,22,76,.3);
-    display: flex; align-items: center; justify-content: center;
-    transition: background .2s, transform .2s;
-  }
-  .carousel-btn:hover { background: var(--pink); transform: translateY(-50%) scale(1.08); }
-  .carousel-btn.left  { left: -18px; }
-  .carousel-btn.right { right: -18px; }
-
-  /* ── Deck card ────────────────────────────────────────────────────────── */
+  /* ── deck card ───────────────────────────────────────────────────── */
   .deck-card {
-    flex: 0 0 280px;
-    scroll-snap-align: start;
-    border-radius: var(--r-xl);
-    overflow: hidden;
-    cursor: pointer;
-    transition: transform .25s, box-shadow .25s;
-    animation: fadeUp .35s ease both;
-    border: 1px solid rgba(255,255,255,.5);
-    background: var(--glass-bg);
-    backdrop-filter: blur(20px);
-    box-shadow: var(--glass-shadow);
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: 14px; overflow: hidden;
+    cursor: pointer; transition: box-shadow .18s, transform .18s;
+    animation: slideUp .25s ease both;
   }
-  .deck-card:hover { transform: translateY(-6px); box-shadow: 0 20px 48px rgba(75,22,76,.2); }
+  .deck-card:hover { box-shadow: 0 4px 18px rgba(75,22,76,.12); transform: translateY(-2px); }
+  .deck-card-bar { height: 4px; background: linear-gradient(90deg, var(--purple), var(--pink)); }
+  .deck-card-body { padding: 16px; }
+  .deck-emoji { font-size: 1.8rem; margin-bottom: 8px; display: block; }
+  .deck-name { font-weight: 700; font-size: .95rem; margin-bottom: 4px; line-height: 1.3; }
+  .deck-meta { font-size: .73rem; color: var(--muted); margin-bottom: 12px; }
 
-  .deck-card-top {
-    background: linear-gradient(135deg, var(--purple) 0%, var(--purple-lt) 100%);
-    padding: 28px 24px 20px;
-    position: relative;
-    min-height: 130px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-  }
-  .deck-card-top::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(circle at 80% 20%, rgba(243,126,154,.25) 0%, transparent 60%);
-    pointer-events: none;
-  }
-  .deck-emoji {
-    font-size: 2.4rem;
-    filter: drop-shadow(0 2px 8px rgba(0,0,0,.15));
-    position: relative; z-index: 1;
-  }
-  .deck-name {
-    font-family: 'Coiny', cursive;
-    font-size: 1.2rem;
-    color: var(--cream);
-    line-height: 1.2;
-    margin-top: 10px;
-    position: relative; z-index: 1;
-  }
-  .deck-card-body { padding: 18px 20px 20px; }
-  .deck-meta {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 14px;
-  }
-  .deck-pill {
-    background: var(--purple-ghost);
-    color: var(--purple-lt);
-    border-radius: var(--r-pill);
-    font-size: .74rem;
-    font-weight: 700;
-    padding: 3px 10px;
-  }
+  /* mastery bar */
+  .mbar-wrap { margin-bottom: 4px; }
+  .mbar-row  { display: flex; justify-content: space-between; font-size: .68rem; color: var(--muted); font-weight: 600; margin-bottom: 4px; }
+  .mbar { height: 4px; background: var(--cream2); border-radius: 4px; overflow: hidden; }
+  .mbar-fill { height: 100%; background: linear-gradient(90deg, var(--purple), var(--pink)); border-radius: 4px; transition: width .5s; }
 
-  /* mastery progress bar inside card */
-  .mastery-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 6px;
-  }
-  .mastery-label { font-size: .74rem; color: var(--text-muted); font-weight: 600; }
-  .mastery-pct   { font-size: .74rem; color: var(--pink); font-weight: 700; }
-  .mastery-track {
-    background: var(--border);
-    border-radius: 6px;
-    height: 6px;
-    overflow: hidden;
-    margin-bottom: 16px;
-  }
-  .mastery-fill {
-    height: 100%;
-    background: linear-gradient(90deg, var(--purple), var(--pink));
-    border-radius: 6px;
-    transition: width .6s ease;
-  }
+  .deck-actions { display: flex; gap: 6px; margin-top: 12px; }
+  .deck-actions .btn { flex: 1; justify-content: center; font-size: .75rem; padding: 7px 8px; }
 
-  /* card action row */
-  .deck-actions {
-    display: flex;
-    gap: 7px;
+  /* ── add deck card ────────────────────────────────────────────────── */
+  .deck-add {
+    background: transparent; border: 1.5px dashed var(--border);
+    border-radius: 14px; min-height: 180px;
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 8px; cursor: pointer;
+    transition: border-color .18s, background .18s; padding: 20px;
   }
-  .deck-actions .btn { flex: 1; font-size: .78rem; padding: 8px 10px; }
+  .deck-add:hover { border-color: var(--pink); background: var(--pink2); }
+  .deck-add-icon {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: var(--cream2); display: flex; align-items: center;
+    justify-content: center; font-size: 1.1rem; transition: background .18s;
+  }
+  .deck-add:hover .deck-add-icon { background: var(--pink); color: #fff; }
+  .deck-add span { font-size: .82rem; font-weight: 700; color: var(--muted); }
+  .deck-add:hover span { color: var(--pink); }
 
-  /* ── Add deck card ────────────────────────────────────────────────────── */
-  .deck-card-add {
-    flex: 0 0 220px;
-    border: 2px dashed var(--border-md);
-    border-radius: var(--r-xl);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    cursor: pointer;
-    transition: all .22s;
-    padding: 32px 20px;
-    color: var(--text-muted);
-    background: transparent;
-    scroll-snap-align: start;
-    min-height: 260px;
+  /* ── empty state ─────────────────────────────────────────────────── */
+  .empty {
+    grid-column: 1 / -1; text-align: center;
+    padding: 48px 20px; border: 1.5px dashed var(--border); border-radius: 14px;
+    background: var(--white);
   }
-  .deck-card-add:hover {
-    border-color: var(--pink);
-    color: var(--pink);
-    background: rgba(243,126,154,.04);
-    transform: translateY(-4px);
-  }
-  .add-icon {
-    width: 52px; height: 52px;
-    border-radius: 50%;
-    background: var(--purple-ghost);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.4rem;
-    transition: background .2s;
-  }
-  .deck-card-add:hover .add-icon { background: rgba(243,126,154,.12); }
-  .add-label { font-size: .88rem; font-weight: 600; }
+  .empty-emoji { font-size: 2.4rem; margin-bottom: 10px; }
+  .empty h3 { font-family: 'Coiny', cursive; font-size: 1.2rem; color: var(--purple); margin-bottom: 6px; }
+  .empty p   { font-size: .82rem; color: var(--muted); margin-bottom: 16px; }
 
-  /* ── Empty state ──────────────────────────────────────────────────────── */
-  .empty-hero {
-    text-align: center;
-    padding: 60px 20px;
-    border: 2px dashed var(--border-md);
-    border-radius: var(--r-xl);
-    background: rgba(255,252,240,.5);
+  /* ── emoji picker ────────────────────────────────────────────────── */
+  .emoji-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .ep {
+    font-size: 1.3rem; border: 2px solid transparent; border-radius: 8px;
+    padding: 3px; cursor: pointer; transition: all .14s; background: none;
   }
-  .empty-emoji { font-size: 3.5rem; margin-bottom: 14px; }
-  .empty-hero h3 {
-    font-family: 'Coiny', cursive;
-    font-size: 1.4rem;
-    color: var(--purple);
-    margin-bottom: 8px;
-  }
-  .empty-hero p { color: var(--text-muted); margin-bottom: 22px; font-size: .92rem; }
-
-  /* ── Emoji picker ─────────────────────────────────────────────────────── */
-  .emoji-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 8px;
-  }
-  .emoji-opt {
-    font-size: 1.4rem;
-    cursor: pointer;
-    border: 2px solid transparent;
-    border-radius: 10px;
-    padding: 4px;
-    transition: all .15s;
-    background: none;
-    line-height: 1;
-  }
-  .emoji-opt:hover  { background: var(--purple-ghost); }
-  .emoji-opt.chosen { border-color: var(--pink); background: var(--pink-lt); }
-
-  /* ── Stats strip ──────────────────────────────────────────────────────── */
-  .stats-strip {
-    display: flex;
-    gap: 14px;
-    margin-bottom: 32px;
-  }
-  .stat-box {
-    flex: 1;
-    border-radius: var(--r-lg);
-    padding: 20px 18px;
-    text-align: center;
-    background: var(--glass-bg);
-    backdrop-filter: blur(16px);
-    border: 1px solid var(--glass-border);
-  }
-  .stat-num {
-    font-family: 'Coiny', cursive;
-    font-size: 2.2rem;
-    color: var(--purple);
-    line-height: 1;
-  }
-  .stat-lbl { font-size: .75rem; color: var(--text-muted); font-weight: 600; margin-top: 4px; }
+  .ep:hover  { background: var(--cream2); }
+  .ep.picked { border-color: var(--pink); background: var(--pink2); }
 </style>
 
+<nav class="nav">
+  <a class="nav-brand" href="/dashboard">🍧 Halo-Halo</a>
+  <div class="nav-right">
+    <button class="toggle-wrap" onclick="toggleDark()" title="Toggle dark mode">
+      <span class="toggle-knob" id="dm-knob">🌙</span>
+      <span class="toggle-track" id="dm-track"></span>
+    </button>
+    <div class="avatar" id="nav-av"></div>
+    <button class="btn-nav" onclick="logout()">Sign out</button>
+  </div>
+</nav>
+
 <div class="page">
-
-  <!-- Top nav -->
-  <nav class="topnav">
-    <a class="nav-brand" href="/dashboard">
-      <span class="nav-brand-emoji">🍧</span>
-      <span class="nav-brand-text">Halo-Halo</span>
-    </a>
-    <div class="nav-right">
-      <div class="nav-user">
-        <div class="avatar" id="nav-avatar"></div>
-        <span id="nav-username">{{ username }}</span>
-      </div>
-      <button class="btn btn-ghost btn-sm" onclick="logout()">Sign out</button>
+  <!-- greeting -->
+  <div class="greeting">
+    <div class="greeting-text">
+      <h2 id="greet-name">Hey there 👋</h2>
+      <p>What are you studying today?</p>
     </div>
-  </nav>
-
-  <!-- Hero -->
-  <div class="hero">
-    <div class="hero-content">
-      <p class="hero-greeting">Welcome back,</p>
-      <h1 class="hero-title" id="hero-name">{{ username }}!</h1>
-      <p class="hero-sub">What are you studying today?<br>Pick a deck or create a new one.</p>
-    </div>
+    <button class="btn btn-secondary btn-sm" onclick="openDeckModal()">+ New Deck</button>
   </div>
 
-  <div class="main">
-
-    <!-- Stats strip -->
-    <div class="stats-strip anim-fadeup" style="animation-delay:.1s">
-      <div class="stat-box">
-        <div class="stat-num" id="stat-decks">—</div>
-        <div class="stat-lbl">Decks</div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-num" id="stat-subjects">—</div>
-        <div class="stat-lbl">Subjects</div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-num" id="stat-mastery">—</div>
-        <div class="stat-lbl">Avg Mastery</div>
-      </div>
-    </div>
-
-    <!-- Deck carousel -->
-    <div class="section-head anim-fadeup" style="animation-delay:.15s">
-      <h2 class="section-title">Your Decks</h2>
-      <button class="btn btn-pink btn-sm" onclick="openDeckModal()">＋ New Deck</button>
-    </div>
-
-    <!-- Empty state -->
-    <div class="empty-hero hidden" id="empty-state">
-      <div class="empty-emoji">🗂️</div>
-      <h3>No decks yet</h3>
-      <p>Create your first deck to start organising your notes.</p>
-      <button class="btn btn-purple" onclick="openDeckModal()">＋ Create Deck</button>
-    </div>
-
-    <!-- Carousel -->
-    <div class="carousel-wrap" id="carousel-wrap">
-      <button class="carousel-btn left" onclick="scrollCarousel(-1)">‹</button>
-      <div class="carousel" id="deck-carousel"></div>
-      <button class="carousel-btn right" onclick="scrollCarousel(1)">›</button>
-    </div>
-
+  <!-- stats -->
+  <div class="stats">
+    <div class="stat-pill"><div class="stat-num" id="s-decks">—</div><div class="stat-lbl">Decks</div></div>
+    <div class="stat-pill"><div class="stat-num" id="s-subj">—</div><div class="stat-lbl">Subjects</div></div>
+    <div class="stat-pill"><div class="stat-num" id="s-mastery">—</div><div class="stat-lbl">Avg Mastery</div></div>
   </div>
+
+  <!-- decks -->
+  <div class="sec-head">
+    <span class="sec-title">Your Decks</span>
+  </div>
+  <div class="deck-grid" id="deck-grid"></div>
 </div>
 
-<!-- ══ CREATE / EDIT DECK MODAL ════════════════════════════════════════════ -->
-<div class="modal-overlay hidden" id="deck-modal">
+<!-- deck modal -->
+<div class="overlay hidden" id="deck-modal">
   <div class="modal">
-    <div class="modal-header">
-      <h3 id="deck-modal-title">New Deck</h3>
+    <div class="modal-head">
+      <h3 id="dm-title">New Deck</h3>
       <button class="modal-close" onclick="closeDeckModal()">✕</button>
     </div>
     <div class="modal-body">
-      <div class="form-group" style="margin-bottom:18px">
-        <label class="label">Deck Name</label>
-        <input class="field" id="deck-name" type="text" placeholder="e.g. Biology Semester 1"/>
+      <div style="margin-bottom:16px">
+        <label class="label">Deck name</label>
+        <input class="field" id="dm-name" type="text" placeholder="e.g. Biology Semester 1"/>
       </div>
       <div>
-        <label class="label">Emoji Icon</label>
-        <div class="emoji-grid" id="emoji-grid"></div>
+        <label class="label">Icon</label>
+        <div class="emoji-row" id="dm-emojis"></div>
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeDeckModal()">Cancel</button>
-      <button class="btn btn-purple" id="deck-save-btn" onclick="saveDeck()">Create Deck</button>
+      <button class="btn btn-primary" id="dm-save-btn" onclick="saveDeck()">Create</button>
     </div>
   </div>
 </div>
-
 {% endblock %}
 
 {% block scripts %}
 <script>
-  // ── State ────────────────────────────────────────────────────────────────
-  const EMOJIS   = ['📚','🧪','🌍','🔬','📐','🎨','💻','🧠','📖','⚗️','🎵','🏛️','🌿','💡','🗺️','✏️','🔭','🌸'];
-  let deckData   = [];
-  let editDeckId = null;
-  let chosenEmoji = '📚';
+  const EMOJIS = ['📚','🧪','🌍','🔬','📐','🎨','💻','🧠','📖','⚗️','🎵','🏛️','🌿','💡','🗺️','✏️'];
+  let decks = [], editId = null, picked = '📚';
 
-  // ── Boot ─────────────────────────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', () => {
-    // Set avatar initial
     const u = '{{ username }}';
-    document.getElementById('nav-avatar').textContent = u[0].toUpperCase();
-    buildEmojiGrid();
+    document.getElementById('greet-name').textContent = `Hey, ${u} 👋`;
+    document.getElementById('nav-av').textContent = u[0].toUpperCase();
     loadDecks();
   });
 
-  // ── Load decks ────────────────────────────────────────────────────────────
   async function loadDecks() {
     const { ok, data } = await api('/api/decks');
     if (!ok) return;
-    deckData = data;
+    decks = data;
     renderDecks();
-    renderStats();
   }
 
-  // ── Stats ─────────────────────────────────────────────────────────────────
-  function renderStats() {
-    const totalSubjects = deckData.reduce((a, d) => a + (d.subject_count || 0), 0);
-    const avgMastery    = deckData.length
-      ? Math.round(deckData.reduce((a, d) => a + (d.mastery || 0), 0) / deckData.length)
-      : 0;
-    document.getElementById('stat-decks').textContent    = deckData.length;
-    document.getElementById('stat-subjects').textContent = totalSubjects;
-    document.getElementById('stat-mastery').textContent  = avgMastery + '%';
-  }
-
-  // ── Render carousel ───────────────────────────────────────────────────────
   function renderDecks() {
-    const carousel = document.getElementById('deck-carousel');
-    const empty    = document.getElementById('empty-state');
-    const wrap     = document.getElementById('carousel-wrap');
+    const grid = document.getElementById('deck-grid');
+    const totalSubj = decks.reduce((a, d) => a + (d.subject_count || 0), 0);
+    const avgM = decks.length ? Math.round(decks.reduce((a,d) => a+(d.mastery||0), 0) / decks.length) : 0;
+    document.getElementById('s-decks').textContent   = decks.length;
+    document.getElementById('s-subj').textContent    = totalSubj;
+    document.getElementById('s-mastery').textContent = avgM + '%';
 
-    if (deckData.length === 0) {
-      empty.classList.remove('hidden');
-      wrap.classList.add('hidden');
+    if (!decks.length) {
+      grid.innerHTML = `
+        <div class="empty">
+          <div class="empty-emoji">🗂️</div>
+          <h3>No decks yet</h3>
+          <p>Create your first deck to get started.</p>
+          <button class="btn btn-primary" onclick="openDeckModal()">+ Create Deck</button>
+        </div>
+        <div class="deck-add" onclick="openDeckModal()">
+          <div class="deck-add-icon">+</div><span>New Deck</span>
+        </div>`;
       return;
     }
-    empty.classList.add('hidden');
-    wrap.classList.remove('hidden');
 
-    carousel.innerHTML = deckData.map((d, i) => `
-      <div class="deck-card" style="animation-delay:${i * 60}ms" onclick="goToDeck(${d.id})">
-        <div class="deck-card-top">
-          <span class="deck-emoji">${esc(d.emoji)}</span>
-          <span class="deck-name">${esc(d.name)}</span>
-        </div>
+    grid.innerHTML = decks.map((d, i) => `
+      <div class="deck-card" style="animation-delay:${i*40}ms" onclick="goToDeck(${d.id})">
+        <div class="deck-card-bar"></div>
         <div class="deck-card-body">
-          <div class="deck-meta">
-            <span class="deck-pill">${d.subject_count} subject${d.subject_count !== 1 ? 's' : ''}</span>
-          </div>
-          <div class="mastery-row">
-            <span class="mastery-label">Flashcard Mastery</span>
-            <span class="mastery-pct">${d.mastery}%</span>
-          </div>
-          <div class="mastery-track">
-            <div class="mastery-fill" style="width:${d.mastery}%"></div>
+          <span class="deck-emoji">${esc(d.emoji)}</span>
+          <div class="deck-name">${esc(d.name)}</div>
+          <div class="deck-meta">${d.subject_count || 0} subject${d.subject_count !== 1 ? 's' : ''}</div>
+          <div class="mbar-wrap">
+            <div class="mbar-row"><span>Mastery</span><span>${d.mastery || 0}%</span></div>
+            <div class="mbar"><div class="mbar-fill" style="width:${d.mastery||0}%"></div></div>
           </div>
           <div class="deck-actions" onclick="event.stopPropagation()">
-            <button class="btn btn-ghost" onclick="openEditDeck(${d.id},'${esc(d.name)}','${esc(d.emoji)}')">✏️ Edit</button>
-            <button class="btn btn-danger" onclick="deleteDeck(${d.id})">🗑</button>
+            <button class="btn btn-ghost" onclick="editDeck(${d.id},'${esc(d.name)}','${esc(d.emoji)}')">Edit</button>
+            <button class="btn btn-danger" onclick="delDeck(${d.id})">Delete</button>
           </div>
         </div>
-      </div>
-    `).join('') + `
-      <div class="deck-card-add" onclick="openDeckModal()">
-        <div class="add-icon">＋</div>
-        <span class="add-label">New Deck</span>
-      </div>
-    `;
+      </div>`
+    ).join('') + `<div class="deck-add" onclick="openDeckModal()"><div class="deck-add-icon">+</div><span>New Deck</span></div>`;
   }
 
-  // ── Navigation ─────────────────────────────────────────────────────────────
   function goToDeck(id) { location.href = `/deck/${id}`; }
 
-  function scrollCarousel(dir) {
-    const el = document.getElementById('deck-carousel');
-    el.scrollBy({ left: dir * 300, behavior: 'smooth' });
-  }
-
-  // ── Emoji grid ─────────────────────────────────────────────────────────────
-  function buildEmojiGrid() {
-    const grid = document.getElementById('emoji-grid');
-    grid.innerHTML = EMOJIS.map(e =>
-      `<button class="emoji-opt${e === chosenEmoji ? ' chosen' : ''}" onclick="pickEmoji('${e}',this)">${e}</button>`
+  function buildEmojiRow() {
+    document.getElementById('dm-emojis').innerHTML = EMOJIS.map(e =>
+      `<button class="ep${e===picked?' picked':''}" onclick="pickEmoji('${e}',this)">${e}</button>`
     ).join('');
   }
-
   function pickEmoji(e, btn) {
-    chosenEmoji = e;
-    document.querySelectorAll('.emoji-opt').forEach(b => b.classList.remove('chosen'));
-    btn.classList.add('chosen');
+    picked = e;
+    document.querySelectorAll('.ep').forEach(b => b.classList.remove('picked'));
+    btn.classList.add('picked');
   }
 
-  // ── Deck Modal ─────────────────────────────────────────────────────────────
   function openDeckModal() {
-    editDeckId  = null;
-    chosenEmoji = '📚';
-    document.getElementById('deck-modal-title').textContent = 'New Deck';
-    document.getElementById('deck-save-btn').textContent    = 'Create Deck';
-    document.getElementById('deck-name').value = '';
-    buildEmojiGrid();
+    editId = null; picked = '📚';
+    document.getElementById('dm-title').textContent = 'New Deck';
+    document.getElementById('dm-save-btn').textContent = 'Create';
+    document.getElementById('dm-name').value = '';
+    buildEmojiRow();
     document.getElementById('deck-modal').classList.remove('hidden');
-    setTimeout(() => document.getElementById('deck-name').focus(), 50);
+    setTimeout(() => document.getElementById('dm-name').focus(), 50);
   }
-
-  function openEditDeck(id, name, emoji) {
-    editDeckId  = id;
-    chosenEmoji = emoji;
-    document.getElementById('deck-modal-title').textContent = 'Edit Deck';
-    document.getElementById('deck-save-btn').textContent    = 'Save Changes';
-    document.getElementById('deck-name').value = name;
-    buildEmojiGrid();
+  function editDeck(id, name, emoji) {
+    editId = id; picked = emoji;
+    document.getElementById('dm-title').textContent = 'Edit Deck';
+    document.getElementById('dm-save-btn').textContent = 'Save';
+    document.getElementById('dm-name').value = name;
+    buildEmojiRow();
     document.getElementById('deck-modal').classList.remove('hidden');
   }
-
-  function closeDeckModal() {
-    document.getElementById('deck-modal').classList.add('hidden');
-  }
+  function closeDeckModal() { document.getElementById('deck-modal').classList.add('hidden'); }
 
   async function saveDeck() {
-    const name = document.getElementById('deck-name').value.trim();
-    if (!name) { toast('Please enter a deck name.'); return; }
-
-    if (editDeckId) {
-      await api(`/api/decks/${editDeckId}`, {
-        method: 'PUT',
-        body: JSON.stringify({ name, emoji: chosenEmoji }),
-      });
-      toast('Deck updated ✓');
+    const name = document.getElementById('dm-name').value.trim();
+    if (!name) { toast('Enter a deck name'); return; }
+    if (editId) {
+      await api(`/api/decks/${editId}`, { method:'PUT', body: JSON.stringify({name, emoji:picked}) });
+      toast('Deck updated');
     } else {
-      await api('/api/decks', {
-        method: 'POST',
-        body: JSON.stringify({ name, emoji: chosenEmoji }),
-      });
+      await api('/api/decks', { method:'POST', body: JSON.stringify({name, emoji:picked}) });
       toast('Deck created 🎉');
     }
-    closeDeckModal();
-    loadDecks();
+    closeDeckModal(); loadDecks();
   }
 
-  async function deleteDeck(id) {
+  async function delDeck(id) {
     if (!confirm('Delete this deck and all its subjects?')) return;
     await api(`/api/decks/${id}`, { method: 'DELETE' });
-    toast('Deck deleted');
-    loadDecks();
+    toast('Deleted'); loadDecks();
   }
 
-  // ── Enter key in modal ──────────────────────────────────────────────────────
   document.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && !document.getElementById('deck-modal').classList.contains('hidden')) {
-      saveDeck();
-    }
+    if (e.key === 'Enter' && !document.getElementById('deck-modal').classList.contains('hidden')) saveDeck();
   });
 </script>
 {% endblock %}

@@ -1,208 +1,105 @@
 {% extends "base.html" %}
-{% block title %} · Welcome{% endblock %}
-
+{% block title %} · Sign in{% endblock %}
 {% block body %}
 <style>
-  /* ── Login page layout ──────────────────────────────────────────────── */
   .login-page {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 24px;
-    position: relative;
-    z-index: 1;
+    min-height: 100vh; display: flex;
+    align-items: center; justify-content: center; padding: 20px;
+    background: var(--cream);
   }
-
-  /* ── Card ───────────────────────────────────────────────────────────── */
-  .login-card {
-    width: 100%;
-    max-width: 420px;
-    border-radius: var(--r-xl);
-    overflow: hidden;
-    animation: fadeUp .4s ease both;
+  .login-box {
+    width: 100%; max-width: 380px;
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: 20px; overflow: hidden;
   }
-
-  /* ── Hero strip ──────────────────────────────────────────────────────── */
-  .login-hero {
-    background: var(--purple);
-    padding: 40px 36px 32px;
+  .login-top {
+    background: var(--purple); padding: 32px 28px 24px;
     text-align: center;
-    position: relative;
-    overflow: hidden;
   }
-  .login-hero::before {
-    content: '';
-    position: absolute;
-    width: 300px; height: 300px;
-    background: radial-gradient(circle, rgba(243,126,154,.25) 0%, transparent 70%);
-    top: -100px; right: -80px;
-    border-radius: 50%;
+  .login-emoji { font-size: 2.4rem; margin-bottom: 6px; }
+  .login-title {
+    font-family: 'Coiny', cursive; font-size: 2rem; color: #fff; line-height: 1;
   }
-  .hero-emoji { font-size: 3.2rem; margin-bottom: 10px; display: block; }
-  .hero-title {
-    font-family: 'Coiny', cursive;
-    font-size: 2.4rem;
-    color: var(--cream);
-    letter-spacing: .02em;
-  }
-  .hero-sub {
-    color: rgba(255,252,240,.6);
-    font-size: .88rem;
-    margin-top: 4px;
-    font-weight: 400;
-  }
-
-  /* ── Tab switcher ────────────────────────────────────────────────────── */
-  .tab-bar {
-    display: flex;
-    background: var(--purple-dk);
-  }
+  .login-sub { font-size: .8rem; color: rgba(255,255,255,.55); margin-top: 4px; }
+  .tab-bar { display: flex; border-bottom: 1px solid var(--border); }
   .tab-btn {
-    flex: 1;
-    padding: 12px;
-    border: none;
-    background: transparent;
-    color: rgba(255,252,240,.5);
-    font-family: 'Nunito', sans-serif;
-    font-size: .88rem;
-    font-weight: 700;
-    cursor: pointer;
-    border-bottom: 3px solid transparent;
-    transition: all .2s;
+    flex: 1; padding: 12px; border: none; background: transparent;
+    font-family: 'Nunito', sans-serif; font-size: .85rem; font-weight: 700;
+    color: var(--muted); cursor: pointer;
+    border-bottom: 2px solid transparent; transition: all .18s;
   }
-  .tab-btn.active {
-    color: var(--pink);
-    border-bottom-color: var(--pink);
-  }
-
-  /* ── Form body ───────────────────────────────────────────────────────── */
-  .login-body { padding: 28px 32px 32px; background: var(--cream); }
-
-  .form-group { margin-bottom: 18px; }
-
-  /* ── PIN dots ────────────────────────────────────────────────────────── */
-  .pin-wrap { position: relative; }
-  .pin-dots {
-    display: flex;
-    gap: 12px;
-    justify-content: center;
-    margin-bottom: 6px;
-  }
+  .tab-btn.active { color: var(--purple); border-bottom-color: var(--purple); }
+  .login-form { padding: 22px 24px 26px; }
+  .form-row { margin-bottom: 16px; }
+  .pin-dots { display: flex; gap: 10px; justify-content: center; margin-bottom: 8px; }
   .pin-dot {
-    width: 14px; height: 14px;
-    border-radius: 50%;
-    border: 2px solid var(--border-md);
-    background: transparent;
-    transition: all .2s;
+    width: 11px; height: 11px; border-radius: 50%;
+    border: 2px solid var(--border); background: transparent; transition: all .18s;
   }
-  .pin-dot.filled { background: var(--pink); border-color: var(--pink); transform: scale(1.15); }
-
-  .pin-input {
-    width: 100%;
-    padding: 11px 16px;
-    text-align: center;
-    letter-spacing: .5em;
-    font-size: 1.4rem;
-    font-weight: 700;
+  .pin-dot.on { background: var(--pink); border-color: var(--pink); transform: scale(1.1); }
+  .field-pin {
+    width: 100%; text-align: center; letter-spacing: .6em;
+    font-size: 1.3rem; font-weight: 700;
   }
-
-  /* ── Submit ──────────────────────────────────────────────────────────── */
-  .submit-btn {
-    width: 100%;
-    padding: 14px;
-    font-size: 1rem;
-    margin-top: 6px;
-    border-radius: var(--r-lg);
-    font-weight: 700;
-  }
-
-  /* ── Divider ─────────────────────────────────────────────────────────── */
-  .divider {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    color: var(--text-light);
-    font-size: .8rem;
-    margin: 6px 0 16px;
-  }
-  .divider::before, .divider::after {
-    content: ''; flex: 1;
-    height: 1px;
-    background: var(--border);
-  }
+  .btn-full { width: 100%; justify-content: center; margin-top: 4px; border-radius: 10px; padding: 11px; }
 </style>
 
 <div class="login-page">
-  <div class="login-card glass">
-
-    <div class="login-hero">
-      <span class="hero-emoji">🍧</span>
-      <h1 class="hero-title">Halo-Halo</h1>
-      <p class="hero-sub">Your colourful study companion</p>
+  <div class="login-box">
+    <div class="login-top">
+      <div class="login-emoji">🍧</div>
+      <div class="login-title">Halo-Halo</div>
+      <div class="login-sub">Your personal study companion</div>
     </div>
 
-    <!-- Tab bar -->
     <div class="tab-bar">
-      <button class="tab-btn active" onclick="switchTab('login',this)">Sign In</button>
-      <button class="tab-btn" onclick="switchTab('register',this)">Create Account</button>
+      <button class="tab-btn active" onclick="switchTab('in', this)">Sign In</button>
+      <button class="tab-btn"        onclick="switchTab('up', this)">Register</button>
     </div>
 
-    <div class="login-body">
+    <div class="login-form">
+      <div class="err hidden" id="auth-err"></div>
 
-      <!-- Error display -->
-      <div class="error-box hidden" id="auth-error"></div>
-
-      <!-- ── LOGIN FORM ──────────────────────────────────────────────── -->
-      <div id="form-login">
-        <div class="form-group">
+      <!-- sign in -->
+      <div id="form-in">
+        <div class="form-row">
           <label class="label">Username</label>
-          <input class="field" id="l-username" type="text" placeholder="Enter your username"
-                 autocomplete="username" autofocus/>
+          <input class="field" id="in-user" type="text" placeholder="your username" autocomplete="username"/>
         </div>
-        <div class="form-group">
-          <label class="label">4-Digit PIN</label>
-          <div class="pin-dots" id="l-dots">
-            <div class="pin-dot" id="l-d0"></div>
-            <div class="pin-dot" id="l-d1"></div>
-            <div class="pin-dot" id="l-d2"></div>
-            <div class="pin-dot" id="l-d3"></div>
+        <div class="form-row">
+          <label class="label">4-digit PIN</label>
+          <div class="pin-dots">
+            <div class="pin-dot" id="in-d0"></div><div class="pin-dot" id="in-d1"></div>
+            <div class="pin-dot" id="in-d2"></div><div class="pin-dot" id="in-d3"></div>
           </div>
-          <input class="field pin-input" id="l-pin" type="password"
-                 maxlength="4" inputmode="numeric" pattern="[0-9]*"
-                 placeholder="••••" autocomplete="current-password"/>
+          <input class="field field-pin" id="in-pin" type="password" maxlength="4"
+                 inputmode="numeric" placeholder="••••" autocomplete="current-password"/>
         </div>
-        <button class="btn btn-purple submit-btn" onclick="doLogin()">Sign In →</button>
+        <button class="btn btn-primary btn-full" onclick="doLogin()">Sign in</button>
       </div>
 
-      <!-- ── REGISTER FORM ───────────────────────────────────────────── -->
-      <div id="form-register" class="hidden">
-        <div class="form-group">
+      <!-- register -->
+      <div id="form-up" class="hidden">
+        <div class="form-row">
           <label class="label">Username</label>
-          <input class="field" id="r-username" type="text" placeholder="Choose a username"
-                 autocomplete="username"/>
+          <input class="field" id="up-user" type="text" placeholder="choose a username" autocomplete="username"/>
         </div>
-        <div class="form-group">
-          <label class="label">4-Digit PIN</label>
-          <div class="pin-dots" id="r-dots">
-            <div class="pin-dot" id="r-d0"></div>
-            <div class="pin-dot" id="r-d1"></div>
-            <div class="pin-dot" id="r-d2"></div>
-            <div class="pin-dot" id="r-d3"></div>
+        <div class="form-row">
+          <label class="label">4-digit PIN</label>
+          <div class="pin-dots">
+            <div class="pin-dot" id="up-d0"></div><div class="pin-dot" id="up-d1"></div>
+            <div class="pin-dot" id="up-d2"></div><div class="pin-dot" id="up-d3"></div>
           </div>
-          <input class="field pin-input" id="r-pin" type="password"
-                 maxlength="4" inputmode="numeric" pattern="[0-9]*"
-                 placeholder="••••" autocomplete="new-password"/>
+          <input class="field field-pin" id="up-pin" type="password" maxlength="4"
+                 inputmode="numeric" placeholder="••••" autocomplete="new-password"/>
         </div>
-        <div class="form-group">
+        <div class="form-row">
           <label class="label">Confirm PIN</label>
-          <input class="field pin-input" id="r-pin2" type="password"
-                 maxlength="4" inputmode="numeric" pattern="[0-9]*"
-                 placeholder="••••" autocomplete="new-password"/>
+          <input class="field field-pin" id="up-pin2" type="password" maxlength="4"
+                 inputmode="numeric" placeholder="••••" autocomplete="new-password"/>
         </div>
-        <button class="btn btn-pink submit-btn" onclick="doRegister()">Create Account →</button>
+        <button class="btn btn-secondary btn-full" onclick="doRegister()">Create account</button>
       </div>
-
     </div>
   </div>
 </div>
@@ -210,76 +107,54 @@
 
 {% block scripts %}
 <script>
-  // ── Tab switching ──────────────────────────────────────────────────────
-  function switchTab(tab, btn) {
+  function switchTab(t, btn) {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    document.getElementById('form-login').classList.toggle('hidden', tab !== 'login');
-    document.getElementById('form-register').classList.toggle('hidden', tab !== 'register');
-    document.getElementById('auth-error').classList.add('hidden');
+    document.getElementById('form-in').classList.toggle('hidden', t !== 'in');
+    document.getElementById('form-up').classList.toggle('hidden', t !== 'up');
+    document.getElementById('auth-err').classList.add('hidden');
   }
 
-  // ── PIN dot animation ──────────────────────────────────────────────────
-  function bindPinDots(inputId, prefix) {
-    const input = document.getElementById(inputId);
-    input.addEventListener('input', () => {
-      const len = input.value.length;
-      for (let i = 0; i < 4; i++) {
-        document.getElementById(`${prefix}-d${i}`)
-          .classList.toggle('filled', i < len);
-      }
+  function bindDots(inputId, prefix) {
+    document.getElementById(inputId).addEventListener('input', e => {
+      const n = e.target.value.length;
+      for (let i = 0; i < 4; i++)
+        document.getElementById(`${prefix}-d${i}`).classList.toggle('on', i < n);
     });
   }
-  bindPinDots('l-pin', 'l');
-  bindPinDots('r-pin', 'r');
+  bindDots('in-pin', 'in');
+  bindDots('up-pin', 'up');
 
-  // ── Enter key support ──────────────────────────────────────────────────
   document.addEventListener('keydown', e => {
     if (e.key !== 'Enter') return;
-    const loginHidden = document.getElementById('form-login').classList.contains('hidden');
-    if (!loginHidden) doLogin();
+    if (!document.getElementById('form-in').classList.contains('hidden')) doLogin();
     else doRegister();
   });
 
-  // ── Login ──────────────────────────────────────────────────────────────
   async function doLogin() {
-    const username = document.getElementById('l-username').value.trim();
-    const pin      = document.getElementById('l-pin').value.trim();
+    const u = document.getElementById('in-user').value.trim();
+    const p = document.getElementById('in-pin').value.trim();
     showErr('');
-
-    const { ok, data } = await api('/api/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ username, pin }),
-    });
-
+    const { ok, data } = await api('/api/auth/login', { method:'POST', body: JSON.stringify({username:u, pin:p}) });
     if (!ok) { showErr(data.error); return; }
     location.href = '/dashboard';
   }
 
-  // ── Register ───────────────────────────────────────────────────────────
   async function doRegister() {
-    const username = document.getElementById('r-username').value.trim();
-    const pin      = document.getElementById('r-pin').value.trim();
-    const pin2     = document.getElementById('r-pin2').value.trim();
+    const u  = document.getElementById('up-user').value.trim();
+    const p  = document.getElementById('up-pin').value.trim();
+    const p2 = document.getElementById('up-pin2').value.trim();
     showErr('');
-
-    if (pin !== pin2) { showErr('PINs do not match.'); return; }
-
-    const { ok, data } = await api('/api/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({ username, pin }),
-    });
-
+    if (p !== p2) { showErr('PINs do not match.'); return; }
+    const { ok, data } = await api('/api/auth/register', { method:'POST', body: JSON.stringify({username:u, pin:p}) });
     if (!ok) { showErr(data.error); return; }
     location.href = '/dashboard';
   }
 
-  // ── Error display ──────────────────────────────────────────────────────
   function showErr(msg) {
-    const el = document.getElementById('auth-error');
+    const el = document.getElementById('auth-err');
     if (!msg) { el.classList.add('hidden'); return; }
-    el.textContent = '⚠️ ' + msg;
-    el.classList.remove('hidden');
+    el.textContent = msg; el.classList.remove('hidden');
   }
 </script>
 {% endblock %}

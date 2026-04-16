@@ -1,474 +1,304 @@
 {% extends "base.html" %}
 {% block title %} · {{ deck.name }}{% endblock %}
-
 {% block body %}
 <style>
-  .page { position: relative; z-index: 1; min-height: 100vh; }
+  .page { max-width: 860px; margin: 0 auto; padding: 0 16px 60px; }
 
-  /* ── Top nav ──────────────────────────────────────────────────────────── */
-  .topnav {
-    background: var(--purple);
-    padding: 0 32px;
-    display: flex; align-items: center; justify-content: space-between;
-    height: 64px;
-    box-shadow: 0 2px 20px rgba(75,22,76,.25);
-    position: sticky; top: 0; z-index: 100;
+  /* ── page header ──────────────────────────────────────────────────── */
+  .page-head {
+    padding: 22px 0 18px;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
   }
-  .nav-left   { display: flex; align-items: center; gap: 14px; }
-  .back-btn {
-    display: flex; align-items: center; gap: 7px;
-    background: rgba(255,252,240,.12);
-    border: none; color: var(--cream);
-    border-radius: var(--r-pill);
-    padding: 8px 16px;
-    font-family: 'Nunito', sans-serif; font-size: .85rem; font-weight: 600;
-    cursor: pointer; transition: background .2s;
-    text-decoration: none;
-  }
-  .back-btn:hover { background: rgba(255,252,240,.22); }
-  .nav-brand-text {
-    font-family: 'Coiny', cursive;
-    font-size: 1.3rem; color: var(--cream); letter-spacing: .02em;
-  }
-  .nav-right { display: flex; align-items: center; gap: 10px; }
+  .page-head-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .deck-icon { font-size: 1.8rem; flex-shrink: 0; }
+  .page-head h2 { font-family: 'Coiny', cursive; font-size: 1.5rem; color: var(--purple); }
+  .page-head p  { font-size: .75rem; color: var(--muted); margin-top: 2px; }
 
-  /* ── Deck hero ────────────────────────────────────────────────────────── */
-  .deck-hero {
-    background: linear-gradient(135deg, var(--purple) 0%, var(--purple-lt) 100%);
-    padding: 40px 40px 64px;
-    position: relative; overflow: hidden;
-  }
-  .deck-hero::before {
-    content: '';
-    position: absolute; inset: 0;
-    background: radial-gradient(circle at 85% 30%, rgba(243,126,154,.2) 0%, transparent 55%);
-    pointer-events: none;
-  }
-  .deck-hero-inner { position: relative; z-index: 1; display: flex; align-items: center; gap: 22px; }
-  .deck-hero-emoji { font-size: 3.5rem; filter: drop-shadow(0 4px 12px rgba(0,0,0,.2)); }
-  .deck-hero-name {
-    font-family: 'Coiny', cursive;
-    font-size: 2.2rem; color: var(--cream); line-height: 1.1; margin-bottom: 4px;
-  }
-  .deck-hero-meta { color: rgba(255,252,240,.6); font-size: .88rem; font-weight: 500; }
-
-  /* ── Main ─────────────────────────────────────────────────────────────── */
-  .main {
-    max-width: 960px; margin: -28px auto 0;
-    padding: 0 28px 80px; position: relative; z-index: 2;
-  }
-
-  /* ── Section header ───────────────────────────────────────────────────── */
-  .section-head {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 18px;
-  }
-  .section-title {
-    font-family: 'Coiny', cursive;
-    font-size: 1.4rem; color: var(--cream);
-  }
-  .section-actions { display: flex; gap: 8px; }
-
-  /* ── Subject grid ─────────────────────────────────────────────────────── */
-  .subjects-grid {
+  /* ── subject grid ─────────────────────────────────────────────────── */
+  .subj-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 18px;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 12px;
   }
+  .subj-card {
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: 14px; overflow: hidden;
+    transition: box-shadow .18s, transform .18s;
+    animation: slideUp .22s ease both;
+  }
+  .subj-card:hover { box-shadow: 0 4px 16px rgba(75,22,76,.1); transform: translateY(-2px); }
+  .subj-card-body  { padding: 16px; }
+  .subj-name  { font-weight: 700; font-size: .92rem; margin-bottom: 4px; line-height: 1.3; }
+  .subj-count { font-size: .72rem; color: var(--muted); margin-bottom: 12px; }
 
-  /* ── Subject card ─────────────────────────────────────────────────────── */
-  .subject-card {
-    border-radius: var(--r-xl);
-    overflow: hidden;
-    background: var(--glass-bg);
-    backdrop-filter: blur(20px);
-    border: 1px solid var(--glass-border);
-    box-shadow: var(--glass-shadow);
-    transition: transform .22s, box-shadow .22s;
-    animation: fadeUp .35s ease both;
-    position: relative;
-  }
-  .subject-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0; height: 3px;
-    background: linear-gradient(90deg, var(--purple), var(--pink));
-  }
-  .subject-card:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(75,22,76,.18); }
+  /* mode progress rows */
+  .mode-bars { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+  .mrow { display: flex; align-items: center; gap: 7px; }
+  .mrow-icon  { font-size: .75rem; width: 16px; text-align: center; }
+  .mrow-bar   { flex: 1; height: 4px; background: var(--cream2); border-radius: 4px; overflow: hidden; }
+  .mrow-fill  { height: 100%; border-radius: 4px; transition: width .5s; }
+  .fill-fc    { background: linear-gradient(90deg, var(--purple), var(--pink)); }
+  .fill-mc    { background: linear-gradient(90deg, #f59e0b, #f97316); }
+  .fill-id    { background: linear-gradient(90deg, #22c55e, #16a34a); }
+  .mrow-pct   { font-size: .68rem; color: var(--muted); font-weight: 700; min-width: 28px; text-align: right; }
 
-  .subject-card-body { padding: 22px 20px 16px; }
-  .subject-name {
-    font-family: 'Coiny', cursive;
-    font-size: 1.1rem; color: var(--text); margin-bottom: 6px;
-  }
-  .subject-count {
-    font-size: .78rem; color: var(--text-muted); font-weight: 600; margin-bottom: 16px;
-  }
+  .subj-actions { padding: 10px 16px 14px; border-top: 1px solid var(--border); display: flex; gap: 6px; }
+  .subj-actions .btn { font-size: .75rem; padding: 7px 10px; }
+  .subj-actions .btn-study { flex: 1; justify-content: center; }
 
-  /* ── Progress bars per mode ───────────────────────────────────────────── */
-  .mode-progress { margin-bottom: 10px; }
-  .mode-row {
-    display: flex; align-items: center; gap: 8px; margin-bottom: 5px;
+  /* ── add card ─────────────────────────────────────────────────────── */
+  .subj-add {
+    border: 1.5px dashed var(--border); border-radius: 14px;
+    min-height: 180px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 8px;
+    cursor: pointer; transition: border-color .18s, background .18s; padding: 20px;
+    background: transparent;
   }
-  .mode-icon { font-size: .8rem; width: 18px; }
-  .mode-track { flex: 1; background: var(--border); border-radius: 6px; height: 6px; overflow: hidden; }
-  .mode-fill  { height: 100%; border-radius: 6px; transition: width .6s ease; }
-  .fill-fc   { background: linear-gradient(90deg, var(--purple), var(--pink)); }
-  .fill-mc   { background: linear-gradient(90deg, #f59e0b, #f97316); }
-  .fill-id   { background: linear-gradient(90deg, #22c55e, #16a34a); }
-  .mode-score { font-size: .7rem; color: var(--text-muted); font-weight: 600; min-width: 32px; text-align: right; }
+  .subj-add:hover { border-color: var(--pink); background: var(--pink2); }
+  .subj-add-icon {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: var(--cream2); display: flex; align-items: center;
+    justify-content: center; font-size: 1rem; transition: background .18s;
+  }
+  .subj-add:hover .subj-add-icon { background: var(--pink); color: #fff; }
+  .subj-add span { font-size: .8rem; font-weight: 700; color: var(--muted); }
+  .subj-add:hover span { color: var(--pink); }
 
-  /* ── Card actions ─────────────────────────────────────────────────────── */
-  .subject-actions {
-    padding: 12px 20px 18px;
-    border-top: 1px solid var(--border);
-    display: flex; gap: 7px;
+  /* ── empty ────────────────────────────────────────────────────────── */
+  .empty {
+    grid-column: 1 / -1; text-align: center; padding: 48px 20px;
+    border: 1.5px dashed var(--border); border-radius: 14px; background: var(--white);
   }
-  .subject-actions .btn { flex: 1; font-size: .78rem; padding: 8px 10px; }
+  .empty-emoji { font-size: 2rem; margin-bottom: 10px; }
+  .empty h3 { font-family: 'Coiny', cursive; font-size: 1.1rem; color: var(--purple); margin-bottom: 6px; }
+  .empty p  { font-size: .8rem; color: var(--muted); margin-bottom: 14px; }
 
-  /* ── Add subject card ─────────────────────────────────────────────────── */
-  .subject-card-add {
-    border: 2px dashed var(--border-md);
-    border-radius: var(--r-xl);
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    gap: 10px; cursor: pointer;
-    transition: all .22s; padding: 36px 20px;
-    color: var(--text-muted); background: transparent;
-    min-height: 220px;
-  }
-  .subject-card-add:hover {
-    border-color: var(--pink); color: var(--pink);
-    background: rgba(243,126,154,.04); transform: translateY(-3px);
-  }
-  .subject-add-icon {
-    width: 48px; height: 48px; border-radius: 50%;
-    background: var(--purple-ghost);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.3rem; transition: background .2s;
-  }
-  .subject-card-add:hover .subject-add-icon { background: rgba(243,126,154,.12); }
-
-  /* ── Empty state ──────────────────────────────────────────────────────── */
-  .empty-box {
-    text-align: center; padding: 56px 20px;
-    border: 2px dashed var(--border-md); border-radius: var(--r-xl);
-    background: rgba(255,252,240,.5); grid-column: 1 / -1;
-  }
-  .empty-box h3 { font-family:'Coiny',cursive; font-size:1.3rem; color:var(--purple); margin-bottom:8px; }
-  .empty-box p  { color:var(--text-muted); margin-bottom:20px; font-size:.9rem; }
-
-  /* ── Import modal specifics ───────────────────────────────────────────── */
+  /* ── import modal extras ──────────────────────────────────────────── */
   .import-hint {
-    background: var(--purple-ghost);
-    border-radius: var(--r-sm);
-    padding: 10px 14px;
-    font-size: .8rem;
-    color: var(--text-muted);
-    margin-top: 8px;
-    line-height: 1.6;
+    background: var(--cream2); border-radius: 8px;
+    padding: 9px 12px; font-size: .77rem; color: var(--muted);
+    margin-top: 8px; line-height: 1.55;
   }
   .import-hint code {
-    background: rgba(75,22,76,.1);
-    color: var(--purple-lt);
-    padding: 1px 5px;
-    border-radius: 4px;
-    font-size: .78rem;
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: 4px; padding: 1px 5px; font-size: .75rem; color: var(--purple);
   }
-  .skip-notice {
-    font-size: .8rem; color: var(--yellow); font-weight: 600; margin-top: 10px;
-  }
+  .skip-note { font-size: .77rem; color: var(--amber); font-weight: 600; margin-top: 8px; }
 </style>
 
+<nav class="nav">
+  <div class="row" style="gap:10px">
+    <a href="/dashboard" class="btn-nav">← Decks</a>
+    <span style="color:rgba(255,255,255,.5);font-size:.8rem">{{ deck.emoji }} {{ deck.name }}</span>
+  </div>
+  <div class="nav-right">
+    <button class="toggle-wrap" onclick="toggleDark()" title="Toggle dark mode">
+      <span class="toggle-knob" id="dm-knob">🌙</span>
+      <span class="toggle-track" id="dm-track"></span>
+    </button>
+    <button class="btn-nav" onclick="logout()">Sign out</button>
+  </div>
+</nav>
+
 <div class="page">
-
-  <!-- Nav -->
-  <nav class="topnav">
-    <div class="nav-left">
-      <a class="back-btn" href="/dashboard">← Decks</a>
-      <span class="nav-brand-text">{{ deck.emoji }} {{ deck.name }}</span>
-    </div>
-    <div class="nav-right">
-      <button class="btn btn-ghost btn-sm" onclick="exportDeck({{ deck.id }})">
-        ↓ Export HTML
-      </button>
-      <button class="btn btn-ghost btn-sm" onclick="logout()">Sign out</button>
-    </div>
-  </nav>
-
-  <!-- Hero -->
-  <div class="deck-hero">
-    <div class="deck-hero-inner">
-      <span class="deck-hero-emoji">{{ deck.emoji }}</span>
+  <div class="page-head">
+    <div class="page-head-left">
+      <span class="deck-icon">{{ deck.emoji }}</span>
       <div>
-        <h1 class="deck-hero-name">{{ deck.name }}</h1>
-        <p class="deck-hero-meta" id="hero-meta">Loading subjects…</p>
+        <h2>{{ deck.name }}</h2>
+        <p id="deck-meta">Loading…</p>
       </div>
+    </div>
+    <div class="row" style="gap:8px;flex-shrink:0">
+      <button class="btn btn-ghost btn-sm" onclick="exportDeck()">↓ Export all</button>
+      <button class="btn btn-secondary btn-sm" onclick="openImport()">+ Import Subject</button>
     </div>
   </div>
 
-  <!-- Main -->
-  <div class="main">
-    <div class="section-head anim-fadeup">
-      <h2 class="section-title">Subjects</h2>
-      <div class="section-actions">
-        <button class="btn btn-pink" onclick="openImportModal()">
-          ＋ Import Subject
-        </button>
-      </div>
-    </div>
-
-    <div class="subjects-grid" id="subjects-grid"></div>
-  </div>
+  <div class="subj-grid" id="subj-grid"></div>
 </div>
 
-<!-- ══ IMPORT SUBJECT MODAL ════════════════════════════════════════════════ -->
-<div class="modal-overlay hidden" id="import-modal">
+<!-- import modal -->
+<div class="overlay hidden" id="import-modal">
   <div class="modal">
-    <div class="modal-header">
-      <h3 id="import-modal-title">Import Subject</h3>
-      <button class="modal-close" onclick="closeImportModal()">✕</button>
+    <div class="modal-head">
+      <h3 id="im-title">Import Subject</h3>
+      <button class="modal-close" onclick="closeImport()">✕</button>
     </div>
     <div class="modal-body">
-      <div style="margin-bottom:18px">
-        <label class="label">Subject Name</label>
-        <input class="field" id="subj-name" type="text" placeholder="e.g. Chapter 3 – Cell Biology"/>
+      <div style="margin-bottom:14px">
+        <label class="label">Subject name</label>
+        <input class="field" id="im-name" type="text" placeholder="e.g. Chapter 3 – Cell Biology"/>
       </div>
       <div>
-        <label class="label">
-          Notes
-          <span class="label-hint">term [TAB] definition · one pair per line</span>
-        </label>
-        <textarea class="field" id="subj-raw"
-          placeholder="Mitosis&#9;Cell division producing two identical daughter cells&#10;Osmosis&#9;Movement of water through a semipermeable membrane&#10;Photosynthesis&#9;Process where plants convert light to food"></textarea>
-        <div class="import-hint">
-          Separate each term and its definition with a <code>Tab</code> key.<br>
-          Double spaces also work. One pair per line.
-        </div>
-        <div class="skip-notice hidden" id="skip-notice"></div>
+        <label class="label">Notes &nbsp;<span style="font-weight:400;text-transform:none;font-size:.75rem;color:var(--muted)">term [TAB] definition · one pair per line</span></label>
+        <textarea class="field" id="im-raw" placeholder="Mitosis&#9;Cell division producing identical daughter cells&#10;Osmosis&#9;Movement of water through a semipermeable membrane"></textarea>
+        <div class="import-hint">Separate term and definition with a <code>Tab</code> key. Double spaces also work.</div>
+        <div class="skip-note hidden" id="im-skip"></div>
       </div>
-      <div class="error-box hidden" id="import-error"></div>
+      <div class="err hidden" id="im-err"></div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeImportModal()">Cancel</button>
-      <button class="btn btn-purple" onclick="doImport()">Import ✓</button>
+      <button class="btn btn-ghost" onclick="closeImport()">Cancel</button>
+      <button class="btn btn-primary" onclick="doImport()">Import</button>
     </div>
   </div>
 </div>
 
-<!-- ══ EDIT SUBJECT MODAL ══════════════════════════════════════════════════ -->
-<div class="modal-overlay hidden" id="edit-modal">
+<!-- edit modal -->
+<div class="overlay hidden" id="edit-modal">
   <div class="modal">
-    <div class="modal-header">
+    <div class="modal-head">
       <h3>Edit Subject</h3>
-      <button class="modal-close" onclick="closeEditModal()">✕</button>
+      <button class="modal-close" onclick="closeEdit()">✕</button>
     </div>
     <div class="modal-body">
-      <div style="margin-bottom:18px">
-        <label class="label">Subject Name</label>
-        <input class="field" id="edit-name" type="text"/>
+      <div style="margin-bottom:14px">
+        <label class="label">Subject name</label>
+        <input class="field" id="ed-name" type="text"/>
       </div>
       <div>
-        <label class="label">
-          Notes
-          <span class="label-hint">term [TAB] definition</span>
-        </label>
-        <textarea class="field" id="edit-raw"></textarea>
+        <label class="label">Notes <span style="font-weight:400;text-transform:none;font-size:.75rem;color:var(--muted)">(re-paste to update)</span></label>
+        <textarea class="field" id="ed-raw"></textarea>
       </div>
-      <div class="error-box hidden" id="edit-error"></div>
+      <div class="err hidden" id="ed-err"></div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeEditModal()">Cancel</button>
-      <button class="btn btn-purple" onclick="doEdit()">Save Changes</button>
+      <button class="btn btn-ghost" onclick="closeEdit()">Cancel</button>
+      <button class="btn btn-primary" onclick="doEdit()">Save</button>
     </div>
   </div>
 </div>
-
 {% endblock %}
 
 {% block scripts %}
 <script>
-  // ── State ─────────────────────────────────────────────────────────────────
   const DECK_ID = {{ deck.id }};
-  let subjects  = [];
-  let editId    = null;
+  let subjects = [], editSubjId = null;
 
-  // ── Boot ──────────────────────────────────────────────────────────────────
-  document.addEventListener('DOMContentLoaded', loadSubjects);
+  document.addEventListener('DOMContentLoaded', load);
 
-  // ── Load subjects ──────────────────────────────────────────────────────────
-  async function loadSubjects() {
+  async function load() {
     const { ok, data } = await api(`/api/decks/${DECK_ID}/subjects`);
     if (!ok) return;
     subjects = data;
-    renderSubjects();
-    updateHeroMeta();
+    render();
   }
 
-  function updateHeroMeta() {
-    const total = subjects.length;
-    const avg   = total
-      ? Math.round(subjects.reduce((a, s) => a + s.mastery, 0) / total)
-      : 0;
-    document.getElementById('hero-meta').textContent =
-      `${total} subject${total !== 1 ? 's' : ''} · ${avg}% avg mastery`;
-  }
+  function render() {
+    const grid = document.getElementById('subj-grid');
+    const n = subjects.length;
+    const avgM = n ? Math.round(subjects.reduce((a,s)=>a+s.mastery,0)/n) : 0;
+    document.getElementById('deck-meta').textContent =
+      `${n} subject${n!==1?'s':''} · ${avgM}% avg mastery`;
 
-  // ── Render subject cards ───────────────────────────────────────────────────
-  function renderSubjects() {
-    const grid = document.getElementById('subjects-grid');
-
-    if (subjects.length === 0) {
+    if (!n) {
       grid.innerHTML = `
-        <div class="empty-box">
-          <div style="font-size:2.8rem;margin-bottom:14px">📝</div>
+        <div class="empty">
+          <div class="empty-emoji">📝</div>
           <h3>No subjects yet</h3>
           <p>Import your first subject to start studying.</p>
-          <button class="btn btn-purple" onclick="openImportModal()">＋ Import Subject</button>
+          <button class="btn btn-primary" onclick="openImport()">+ Import Subject</button>
+        </div>
+        <div class="subj-add" onclick="openImport()">
+          <div class="subj-add-icon">+</div><span>Import Subject</span>
         </div>`;
       return;
     }
 
     grid.innerHTML = subjects.map((s, i) => `
-      <div class="subject-card" style="animation-delay:${i * 55}ms">
-        <div class="subject-card-body">
-          <div class="subject-name">${esc(s.name)}</div>
-          <div class="subject-count">${s.count} item${s.count !== 1 ? 's' : ''}</div>
-
-          <!-- Progress bars for each mode -->
-          <div class="mode-progress">
-            <div class="mode-row">
-              <span class="mode-icon">📇</span>
-              <div class="mode-track"><div class="mode-fill fill-fc" style="width:${s.mastery}%"></div></div>
-              <span class="mode-score">${s.mastery}%</span>
-            </div>
-            <div class="mode-row">
-              <span class="mode-icon">🔘</span>
-              <div class="mode-track"><div class="mode-fill fill-mc" style="width:${s.mc_score.pct}%"></div></div>
-              <span class="mode-score">${s.mc_score.pct}%</span>
-            </div>
-            <div class="mode-row">
-              <span class="mode-icon">✏️</span>
-              <div class="mode-track"><div class="mode-fill fill-id" style="width:${s.id_score.pct}%"></div></div>
-              <span class="mode-score">${s.id_score.pct}%</span>
-            </div>
+      <div class="subj-card" style="animation-delay:${i*40}ms">
+        <div class="subj-card-body">
+          <div class="subj-name">${esc(s.name)}</div>
+          <div class="subj-count">${s.count} item${s.count!==1?'s':''}</div>
+          <div class="mode-bars">
+            <div class="mrow"><span class="mrow-icon">📇</span><div class="mrow-bar"><div class="mrow-fill fill-fc" style="width:${s.mastery}%"></div></div><span class="mrow-pct">${s.mastery}%</span></div>
+            <div class="mrow"><span class="mrow-icon">🔘</span><div class="mrow-bar"><div class="mrow-fill fill-mc" style="width:${s.mc_score.pct}%"></div></div><span class="mrow-pct">${s.mc_score.pct}%</span></div>
+            <div class="mrow"><span class="mrow-icon">✏️</span><div class="mrow-bar"><div class="mrow-fill fill-id" style="width:${s.id_score.pct}%"></div></div><span class="mrow-pct">${s.id_score.pct}%</span></div>
           </div>
         </div>
-
-        <div class="subject-actions">
-          <button class="btn btn-purple" onclick="goStudy(${s.id})">▶ Study</button>
-          <button class="btn btn-ghost"  onclick="openEditModal(${s.id})">✏️</button>
-          <button class="btn btn-danger" onclick="deleteSubject(${s.id})">🗑</button>
+        <div class="subj-actions">
+          <button class="btn btn-primary btn-study" onclick="location.href='/study/${s.id}'">Study</button>
+          <button class="btn-icon" title="Export" onclick="exportSubj(${s.id})">↓</button>
+          <button class="btn-icon" title="Edit"   onclick="openEdit(${s.id})">✏</button>
+          <button class="btn-icon" title="Delete" onclick="delSubj(${s.id})" style="color:var(--red)">🗑</button>
         </div>
-      </div>
-    `).join('') + `
-      <div class="subject-card-add" onclick="openImportModal()">
-        <div class="subject-add-icon">＋</div>
-        <span style="font-size:.88rem;font-weight:600">Import Subject</span>
-      </div>`;
+      </div>`
+    ).join('') + `<div class="subj-add" onclick="openImport()"><div class="subj-add-icon">+</div><span>Import Subject</span></div>`;
   }
 
-  // ── Navigate to study page ─────────────────────────────────────────────────
-  function goStudy(id) { location.href = `/study/${id}`; }
-
-  // ── Export deck ────────────────────────────────────────────────────────────
-  function exportDeck(id) { location.href = `/api/decks/${id}/export`; }
-
-  // ── Import modal ───────────────────────────────────────────────────────────
-  function openImportModal() {
-    document.getElementById('subj-name').value = '';
-    document.getElementById('subj-raw').value  = '';
-    document.getElementById('import-error').classList.add('hidden');
-    document.getElementById('skip-notice').classList.add('hidden');
+  /* ── import ────────────────────────────────────────────────────────── */
+  function openImport() {
+    document.getElementById('im-name').value = '';
+    document.getElementById('im-raw').value  = '';
+    document.getElementById('im-err').classList.add('hidden');
+    document.getElementById('im-skip').classList.add('hidden');
     document.getElementById('import-modal').classList.remove('hidden');
-    setTimeout(() => document.getElementById('subj-name').focus(), 50);
+    setTimeout(() => document.getElementById('im-name').focus(), 50);
   }
-  function closeImportModal() {
-    document.getElementById('import-modal').classList.add('hidden');
-  }
+  function closeImport() { document.getElementById('import-modal').classList.add('hidden'); }
 
   async function doImport() {
-    const name = document.getElementById('subj-name').value.trim();
-    const raw  = document.getElementById('subj-raw').value;
-    const errEl = document.getElementById('import-error');
-    const skipEl = document.getElementById('skip-notice');
+    const name = document.getElementById('im-name').value.trim();
+    const raw  = document.getElementById('im-raw').value;
+    const errEl = document.getElementById('im-err');
     errEl.classList.add('hidden');
-    skipEl.classList.add('hidden');
-
-    if (!name) { showErr(errEl, 'Please enter a subject name.'); return; }
-    if (!raw.trim()) { showErr(errEl, 'Please paste your notes.'); return; }
-
+    if (!name) { errEl.textContent = 'Enter a subject name.'; errEl.classList.remove('hidden'); return; }
+    if (!raw.trim()) { errEl.textContent = 'Paste your notes first.'; errEl.classList.remove('hidden'); return; }
     const { ok, data } = await api(`/api/decks/${DECK_ID}/subjects`, {
-      method: 'POST',
-      body: JSON.stringify({ name, raw }),
+      method: 'POST', body: JSON.stringify({ name, raw })
     });
-
-    if (!ok) { showErr(errEl, data.error); return; }
-
-    if (data.skipped && data.skipped.length) {
-      skipEl.textContent = `⚠️ ${data.skipped.length} line(s) skipped (missing tab separator).`;
-      skipEl.classList.remove('hidden');
-      // Give user a moment to see it, then close
-      setTimeout(() => { closeImportModal(); loadSubjects(); toast(`"${name}" imported ✓`); }, 1600);
+    if (!ok) { errEl.textContent = data.error; errEl.classList.remove('hidden'); return; }
+    if (data.skipped?.length) {
+      const sk = document.getElementById('im-skip');
+      sk.textContent = `${data.skipped.length} line(s) skipped (no tab separator found).`;
+      sk.classList.remove('hidden');
+      setTimeout(() => { closeImport(); load(); toast(`"${name}" imported`); }, 1400);
     } else {
-      closeImportModal();
-      loadSubjects();
-      toast(`"${name}" imported 🎉`);
+      closeImport(); load(); toast(`"${name}" imported 🎉`);
     }
   }
 
-  // ── Edit modal ─────────────────────────────────────────────────────────────
-  function openEditModal(id) {
+  /* ── edit ──────────────────────────────────────────────────────────── */
+  function openEdit(id) {
     const s = subjects.find(x => x.id === id);
     if (!s) return;
-    editId = id;
-
-    // Note: items_json isn't loaded here—we'd need a separate fetch.
-    // For simplicity, we let the user re-paste. A future enhancement could
-    // pre-fill this by fetching /api/subjects/:id.
-    document.getElementById('edit-name').value = s.name;
-    document.getElementById('edit-raw').value  = '';
-    document.getElementById('edit-error').classList.add('hidden');
+    editSubjId = id;
+    document.getElementById('ed-name').value = s.name;
+    document.getElementById('ed-raw').value  = '';
+    document.getElementById('ed-err').classList.add('hidden');
     document.getElementById('edit-modal').classList.remove('hidden');
-    setTimeout(() => document.getElementById('edit-name').focus(), 50);
   }
-  function closeEditModal() {
-    document.getElementById('edit-modal').classList.add('hidden');
-    editId = null;
-  }
+  function closeEdit() { document.getElementById('edit-modal').classList.add('hidden'); }
 
   async function doEdit() {
-    const name = document.getElementById('edit-name').value.trim();
-    const raw  = document.getElementById('edit-raw').value;
-    const errEl = document.getElementById('edit-error');
+    const name = document.getElementById('ed-name').value.trim();
+    const raw  = document.getElementById('ed-raw').value;
+    const errEl = document.getElementById('ed-err');
     errEl.classList.add('hidden');
-
-    if (!name) { showErr(errEl, 'Subject name is required.'); return; }
-    if (!raw.trim()) { showErr(errEl, 'Please paste updated notes.'); return; }
-
-    const { ok, data } = await api(`/api/subjects/${editId}`, {
-      method: 'PUT',
-      body: JSON.stringify({ name, raw }),
+    if (!name) { errEl.textContent = 'Enter a name.'; errEl.classList.remove('hidden'); return; }
+    if (!raw.trim()) { errEl.textContent = 'Paste updated notes.'; errEl.classList.remove('hidden'); return; }
+    const { ok, data } = await api(`/api/subjects/${editSubjId}`, {
+      method: 'PUT', body: JSON.stringify({ name, raw })
     });
-    if (!ok) { showErr(errEl, data.error); return; }
-
-    closeEditModal();
-    loadSubjects();
-    toast('Subject updated ✓');
+    if (!ok) { errEl.textContent = data.error; errEl.classList.remove('hidden'); return; }
+    closeEdit(); load(); toast('Subject updated');
   }
 
-  // ── Delete subject ─────────────────────────────────────────────────────────
-  async function deleteSubject(id) {
-    if (!confirm('Delete this subject? All progress will be lost.')) return;
+  async function delSubj(id) {
+    if (!confirm('Delete this subject? Progress will be lost.')) return;
     await api(`/api/subjects/${id}`, { method: 'DELETE' });
-    toast('Subject deleted');
-    loadSubjects();
+    toast('Deleted'); load();
   }
 
-  // ── Util ───────────────────────────────────────────────────────────────────
-  function showErr(el, msg) {
-    el.textContent = '⚠️ ' + msg;
-    el.classList.remove('hidden');
-  }
+function exportSubj(id) { 
+  const s = subjects.find(x => x.id === id);
+  if (!s || s.count === 0) { toast('No items to export'); return; }
+  location.href = `/api/subjects/${id}/export`; 
+}
+function exportDeck() { 
+  const totalItems = subjects.reduce((sum, s) => sum + s.count, 0);
+  if (totalItems === 0) { toast('No items to export'); return; }
+  location.href = `/api/decks/${DECK_ID}/export`; 
 </script>
 {% endblock %}

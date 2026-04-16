@@ -1,853 +1,523 @@
 {% extends "base.html" %}
-{% block title %} · Study – {{ subject.name }}{% endblock %}
-
+{% block title %} · {{ subject.name }}{% endblock %}
 {% block body %}
 <style>
-  /* ═══════════════════════════════════════════════════════════════════════
-     study.html — local styles
-     All design tokens live in base.html
-     ═══════════════════════════════════════════════════════════════════════ */
+  .study-wrap { max-width: 640px; margin: 0 auto; padding: 0 16px 80px; }
 
-  .page { position: relative; z-index: 1; min-height: 100vh; }
-
-  /* ── Top nav ──────────────────────────────────────────────────────────── */
-  .topnav {
-    background: var(--purple);
-    padding: 0 24px;
-    display: flex; align-items: center; justify-content: space-between;
-    height: 60px;
-    box-shadow: 0 2px 16px rgba(75,22,76,.28);
-    position: sticky; top: 0; z-index: 100;
-  }
-  .nav-left { display: flex; align-items: center; gap: 10px; }
-  .back-btn {
-    display: flex; align-items: center; gap: 6px;
-    background: rgba(255,252,240,.12);
-    border: none; color: var(--cream);
-    border-radius: var(--r-pill);
-    padding: 7px 14px;
-    font-family: 'Nunito', sans-serif; font-size: .82rem; font-weight: 600;
-    cursor: pointer; transition: background .2s; text-decoration: none;
-  }
-  .back-btn:hover { background: rgba(255,252,240,.22); }
-  .nav-info { display: flex; flex-direction: column; }
-  .nav-subject {
-    font-family: 'Coiny', cursive;
-    font-size: 1.15rem; color: var(--cream); line-height: 1.1;
-  }
-  .nav-deck { font-size: .73rem; color: rgba(255,252,240,.5); font-weight: 500; }
-
-  /* ── Mode tabs ────────────────────────────────────────────────────────── */
-  .mode-tabs {
-    background: rgba(75,22,76,.92);
-    backdrop-filter: blur(12px);
-    display: flex; gap: 4px;
-    padding: 10px 20px;
-    border-bottom: 1px solid rgba(243,126,154,.15);
+  /* ── mode tabs ────────────────────────────────────────────────────── */
+  .mode-bar {
+    display: flex; border-bottom: 1px solid var(--border);
+    background: var(--cream); position: sticky; top: 56px; z-index: 40;
   }
   .mode-tab {
-    display: flex; align-items: center; gap: 6px;
-    background: transparent; border: none;
-    color: rgba(255,252,240,.5);
-    border-radius: var(--r-pill); padding: 8px 18px;
-    font-family: 'Nunito', sans-serif; font-size: .85rem; font-weight: 700;
-    cursor: pointer; transition: all .2s;
+    flex: 1; padding: 12px 8px; border: none;
+    border-bottom: 2px solid transparent;
+    background: transparent; color: var(--muted);
+    font-family: 'Nunito', sans-serif; font-size: .82rem; font-weight: 700;
+    cursor: pointer; transition: color .18s, border-color .18s; white-space: nowrap;
   }
-  .mode-tab:hover { color: var(--cream); background: rgba(255,252,240,.1); }
-  .mode-tab.active { background: var(--pink); color: #fff; }
+  .mode-tab:hover  { color: var(--text); }
+  .mode-tab.active { color: var(--purple); border-bottom-color: var(--purple); }
 
-  /* ── Study body ───────────────────────────────────────────────────────── */
-  .study-body { max-width: 680px; margin: 0 auto; padding: 28px 20px 100px; }
-  .panel { animation: fadeUp .3s ease both; }
+  /* ── panel ────────────────────────────────────────────────────────── */
+  .panel { padding-top: 20px; }
 
-  /* ── Progress track ───────────────────────────────────────────────────── */
-  .progress-track {
-    background: rgba(75,22,76,.1);
-    border-radius: 8px; height: 8px; overflow: hidden; margin-bottom: 6px;
-  }
-  .progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, var(--purple), var(--pink));
-    border-radius: 8px; transition: width .5s cubic-bezier(.4,0,.2,1);
-  }
-  .progress-meta {
-    display: flex; justify-content: space-between;
-    font-size: .76rem; color: var(--text-muted); font-weight: 600;
-    margin-bottom: 18px;
-  }
-  .progress-meta .pct { color: var(--pink); font-weight: 700; }
+  /* ── progress ─────────────────────────────────────────────────────── */
+  .prog-head { display: flex; justify-content: space-between; font-size: .72rem; font-weight: 600; color: var(--muted); margin-bottom: 5px; }
+  .prog-head .hi { color: var(--pink); font-weight: 700; }
+  .prog-track { height: 5px; background: var(--cream2); border-radius: 4px; overflow: hidden; margin-bottom: 18px; }
+  .prog-fill  { height: 100%; border-radius: 4px; background: linear-gradient(90deg,var(--purple),var(--pink)); transition: width .4s; }
 
-  /* ── Colour-coded flashcard breakdown bar ─────────────────────────────── */
-  .breakdown-bar {
-    display: flex; height: 8px; border-radius: 8px; overflow: hidden;
-    margin-bottom: 4px; gap: 1px;
-  }
-  .breakdown-seg {
-    height: 100%; transition: width .5s ease; min-width: 0;
-  }
-  .breakdown-legend {
-    display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px;
-  }
-  .legend-item {
-    display: flex; align-items: center; gap: 4px;
-    font-size: .68rem; font-weight: 700; color: var(--text-muted);
-  }
-  .legend-dot {
-    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
-  }
+  /* breakdown bar */
+  .bbar { display: flex; height: 5px; border-radius: 4px; overflow: hidden; gap: 1px; margin-bottom: 3px; }
+  .bseg { height: 100%; min-width: 0; transition: width .4s; }
+  .bleg { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .bleg-i { display: flex; align-items: center; gap: 3px; font-size: .64rem; font-weight: 700; color: var(--muted); }
+  .bleg-d { width: 6px; height: 6px; border-radius: 50%; }
 
-  /* ── Score bar ────────────────────────────────────────────────────────── */
-  .score-bar { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 12px; }
-  .s-pill { padding: 4px 13px; border-radius: var(--r-pill); font-size: .76rem; font-weight: 700; }
-  .sp-total   { background: var(--purple); color: var(--cream); }
-  .sp-correct { background: var(--green-lt); color: var(--green-dk); }
-  .sp-wrong   { background: var(--red-lt); color: var(--red-dk); }
-  .sp-pct     { background: var(--pink); color: #fff; }
-  .sp-round   { background: rgba(75,22,76,.1); color: var(--purple); border: 1px solid rgba(75,22,76,.2); }
+  /* ── score pills ──────────────────────────────────────────────────── */
+  .pills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .pill  { padding: 3px 10px; border-radius: 999px; font-size: .71rem; font-weight: 700; }
+  .p-ac  { background: var(--purple); color: #fff; }
+  .p-gn  { background: var(--green-bg); color: var(--green); }
+  .p-rd  { background: var(--red-bg); color: var(--red); }
+  .p-pk  { background: var(--pink); color: #fff; }
 
-  /* ── Round notice banner ──────────────────────────────────────────────── */
-  .round-notice {
-    background: rgba(243,126,154,.12);
-    border: 1px solid rgba(243,126,154,.3);
-    border-radius: var(--r-md);
-    padding: 10px 16px;
-    font-size: .82rem; font-weight: 600; color: var(--purple);
-    margin-bottom: 14px; text-align: center;
+  /* ── 3-D flashcard ────────────────────────────────────────────────── */
+  .scene {
+    perspective: 1000px; height: 210px;
+    cursor: pointer; margin-bottom: 14px; user-select: none;
   }
-
-  /* ── 3D Flashcard ─────────────────────────────────────────────────────── */
-  .card-scene {
-    perspective: 1200px; height: 230px;
-    cursor: pointer; margin-bottom: 16px; user-select: none;
-  }
-  .card-3d {
+  .card3 {
     width: 100%; height: 100%; position: relative;
     transform-style: preserve-3d;
-    transition: transform .65s cubic-bezier(.4,0,.2,1);
+    transition: transform .6s cubic-bezier(.4,0,.2,1);
   }
-  .card-3d.flipped { transform: rotateY(180deg); }
-
-  .card-face {
+  .card3.flip { transform: rotateY(180deg); }
+  .face {
     position: absolute; inset: 0; backface-visibility: hidden;
-    border-radius: var(--r-xl);
-    display: flex; flex-direction: column;
+    border-radius: 14px; display: flex; flex-direction: column;
     align-items: center; justify-content: center;
-    padding: 32px; text-align: center;
+    padding: 26px 22px; text-align: center;
   }
-  .card-front {
-    background: var(--glass-bg); backdrop-filter: blur(20px);
-    border: 2px solid rgba(243,126,154,.3);
-    box-shadow: 0 8px 28px rgba(75,22,76,.1), inset 0 1px 0 rgba(255,255,255,.6);
+  .f-front {
+    background: var(--white); border: 1.5px solid var(--border);
+    box-shadow: 0 2px 10px rgba(0,0,0,.05);
   }
-  /* Colour-coded border by last rating */
-  .card-front[data-rating="1"] { border-color: #ef4444; }
-  .card-front[data-rating="2"] { border-color: #f97316; }
-  .card-front[data-rating="3"] { border-color: #eab308; }
-  .card-front[data-rating="4"] { border-color: #84cc16; }
-  .card-front[data-rating="5"] { border-color: #22c55e; }
+  .f-front[data-r="1"] { border-color: #ef4444; }
+  .f-front[data-r="2"] { border-color: #f97316; }
+  .f-front[data-r="3"] { border-color: #eab308; }
+  .f-front[data-r="4"] { border-color: #84cc16; }
+  .f-front[data-r="5"] { border-color: #22c55e; }
+  .f-back {
+    background: var(--purple); color: #fff;
+    transform: rotateY(180deg);
+    box-shadow: 0 4px 18px rgba(75,22,76,.22);
+  }
+  .ftag  { font-size: .58rem; letter-spacing: .14em; text-transform: uppercase; opacity: .38; margin-bottom: 8px; font-weight: 700; }
+  .ftext { font-size: 1.12rem; font-weight: 700; line-height: 1.45; max-width: 480px; }
+  .fhint { font-size: .68rem; opacity: .3; margin-top: 12px; font-style: italic; }
+  .rbadge { position: absolute; top: 9px; right: 11px; padding: 2px 8px; border-radius: 999px; font-size: .6rem; font-weight: 800; color: #fff; }
+  .rb0{background:#94a3b8}.rb1{background:#ef4444}.rb2{background:#f97316}
+  .rb3{background:#eab308;color:#1a1a1a}.rb4{background:#84cc16;color:#1a1a1a}.rb5{background:#22c55e}
 
-  .card-back {
-    background: linear-gradient(135deg, var(--purple) 0%, var(--purple-lt) 100%);
-    border: 2px solid rgba(243,126,154,.4);
-    box-shadow: 0 8px 28px rgba(75,22,76,.28);
-    transform: rotateY(180deg); color: var(--cream);
+  /* ── rating strip ─────────────────────────────────────────────────── */
+  .rstrip { text-align: center; margin-bottom: 14px; }
+  .rlbl   { font-size: .7rem; color: var(--muted); font-weight: 600; margin-bottom: 7px; display: block; }
+  .rrow   { display: flex; justify-content: center; gap: 5px; }
+  .rbtn {
+    display: flex; flex-direction: column; align-items: center; gap: 1px;
+    border: none; border-radius: 9px; padding: 7px 10px; cursor: pointer;
+    font-family: 'Nunito', sans-serif; font-size: .88rem; font-weight: 800;
+    color: #fff; min-width: 48px; transition: transform .12s;
   }
-  .face-tag {
-    font-size: .62rem; letter-spacing: .18em; text-transform: uppercase;
-    opacity: .4; margin-bottom: 10px; font-weight: 700;
-  }
-  .face-text { font-size: 1.28rem; font-weight: 700; line-height: 1.45; max-width: 500px; }
-  .face-hint { font-size: .72rem; opacity: .32; margin-top: 14px; font-style: italic; }
+  .rbtn small { font-size: .52rem; font-weight: 600; opacity: .85; }
+  .rbtn:hover { transform: translateY(-2px); }
+  .rb-1{background:#ef4444}.rb-2{background:#f97316}
+  .rb-3{background:#eab308;color:#1a1a1a}
+  .rb-4{background:#84cc16;color:#1a1a1a}.rb-5{background:#22c55e}
 
-  /* rating badge on card (shows current card's last rating) */
-  .rating-badge {
-    position: absolute; top: 12px; right: 14px;
-    padding: 3px 10px; border-radius: var(--r-pill);
-    font-size: .68rem; font-weight: 800; color: #fff;
-    opacity: .85;
-  }
-  .rb-0 { background: #9ca3af; }
-  .rb-1 { background: #ef4444; }
-  .rb-2 { background: #f97316; }
-  .rb-3 { background: #eab308; color: #1a0f22; }
-  .rb-4 { background: #84cc16; color: #1a0f22; }
-  .rb-5 { background: #22c55e; }
+  /* ── stat grid ────────────────────────────────────────────────────── */
+  .sgrid { display: grid; grid-template-columns: repeat(3,1fr); gap: 7px; margin-bottom: 14px; }
+  .sbox  { background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 10px 6px; text-align: center; }
+  .snum  { font-family: 'Coiny', cursive; font-size: 1.5rem; line-height: 1; }
+  .slbl  { font-size: .6rem; color: var(--muted); font-weight: 700; margin-top: 2px; }
 
-  /* ── Rating strip ─────────────────────────────────────────────────────── */
-  .rating-strip { text-align: center; margin-bottom: 18px; }
-  .rating-label { font-size: .76rem; color: var(--text-muted); font-weight: 600; margin-bottom: 9px; display: block; }
-  .rating-row { display: flex; justify-content: center; gap: 7px; }
-  .r-btn {
-    display: flex; flex-direction: column; align-items: center; gap: 2px;
-    border: none; border-radius: 12px; padding: 9px 12px;
-    cursor: pointer; font-family: 'Nunito', sans-serif;
-    font-size: 1rem; font-weight: 800; color: #fff;
-    min-width: 52px; transition: transform .15s, filter .15s;
-  }
-  .r-btn small { font-size: .58rem; font-weight: 600; opacity: .85; }
-  .r-btn:hover { transform: translateY(-3px); filter: brightness(1.1); }
-  .r1 { background: #ef4444; } .r2 { background: #f97316; }
-  .r3 { background: #eab308; color: #1a0f22; }
-  .r4 { background: #84cc16; color: #1a0f22; }
-  .r5 { background: #22c55e; }
-
-  /* ── FC stat grid ─────────────────────────────────────────────────────── */
-  .fc-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin: 14px 0 16px; }
-  .stat-card {
-    border-radius: var(--r-md); padding: 12px 8px; text-align: center;
-    background: var(--glass-bg); backdrop-filter: blur(14px);
-    border: 1px solid var(--glass-border);
-  }
-  .stat-num { font-family: 'Coiny', cursive; font-size: 1.7rem; line-height: 1; }
-  .n-gray   { color: #9ca3af; }
-  .n-red    { color: #ef4444; }
-  .n-orange { color: #f97316; }
-  .n-yellow { color: #eab308; }
-  .n-lime   { color: #84cc16; }
-  .n-green  { color: #22c55e; }
-  .stat-lbl { font-size: .62rem; color: var(--text-muted); font-weight: 700; margin-top: 3px; }
-
-  /* ── Question card ────────────────────────────────────────────────────── */
-  .q-card {
-    background: var(--glass-bg); backdrop-filter: blur(20px);
-    border: 2px solid rgba(243,126,154,.28);
-    border-radius: var(--r-xl);
-    padding: 30px 24px; text-align: center;
-    font-size: 1.2rem; font-weight: 700;
-    min-height: 100px; display: flex; align-items: center; justify-content: center;
-    margin-bottom: 18px; line-height: 1.5;
-    box-shadow: 0 5px 20px rgba(75,22,76,.09), inset 0 1px 0 rgba(255,255,255,.6);
+  /* ── question card ────────────────────────────────────────────────── */
+  .qcard {
+    background: var(--white); border: 1.5px solid var(--border);
+    border-radius: 14px; padding: 24px 20px;
+    text-align: center; font-size: 1.08rem; font-weight: 700;
+    min-height: 88px; display: flex; align-items: center; justify-content: center;
+    margin-bottom: 14px; line-height: 1.5;
+    box-shadow: 0 1px 6px rgba(0,0,0,.04);
   }
 
-  /* ── MC Choices ───────────────────────────────────────────────────────── */
-  .choices { display: flex; flex-direction: column; gap: 9px; margin-bottom: 12px; }
-  .choice-btn {
-    background: var(--glass-bg); backdrop-filter: blur(10px);
-    border: 1.5px solid var(--border); color: var(--text);
-    border-radius: var(--r-lg); padding: 13px 18px; text-align: left;
-    font-family: 'Nunito', sans-serif; font-size: .93rem; font-weight: 500;
-    cursor: pointer; transition: all .18s; line-height: 1.4;
-    display: flex; align-items: center; gap: 10px;
+  /* ── choices ──────────────────────────────────────────────────────── */
+  .choices  { display: flex; flex-direction: column; gap: 7px; margin-bottom: 12px; }
+  .ch {
+    background: var(--white); border: 1.5px solid var(--border); color: var(--text);
+    border-radius: 11px; padding: 11px 14px; text-align: left;
+    font-family: 'Nunito', sans-serif; font-size: .88rem; font-weight: 600;
+    cursor: pointer; transition: border-color .15s; display: flex; align-items: center; gap: 8px;
   }
-  .choice-btn .choice-letter {
-    width: 26px; height: 26px; border-radius: 50%;
-    background: rgba(75,22,76,.1); color: var(--purple);
-    font-size: .78rem; font-weight: 800;
-    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-  }
-  .choice-btn:hover:not(:disabled) { border-color: var(--pink); background: rgba(243,126,154,.06); }
-  .choice-btn:hover:not(:disabled) .choice-letter { background: var(--pink); color: #fff; }
-  .choice-btn.correct { background: var(--green-lt); border-color: var(--green); color: var(--green-dk); font-weight: 700; }
-  .choice-btn.correct .choice-letter { background: var(--green); color: #fff; }
-  .choice-btn.wrong   { background: var(--red-lt); border-color: var(--red); color: var(--red-dk); }
-  .choice-btn.wrong .choice-letter { background: var(--red); color: #fff; }
-  .choice-btn:disabled { cursor: default; }
-
-  /* ── Feedback box ─────────────────────────────────────────────────────── */
-  .feedback {
-    padding: 12px 16px; border-radius: var(--r-md);
-    font-size: .88rem; line-height: 1.5;
-    margin-bottom: 12px;
-    border-left: 4px solid transparent;
-  }
-  .feedback .fb-label { font-weight: 800; margin-bottom: 3px; display: block; }
-  .fb-ok  { background: var(--green-lt); border-color: var(--green); color: var(--green-dk); }
-  .fb-bad { background: var(--red-lt);   border-color: var(--red);   color: var(--red-dk); }
-  .fb-thinking { background: rgba(75,22,76,.06); border-color: var(--purple); color: var(--text-muted); font-style: italic; }
-
-  /* ── ID input ─────────────────────────────────────────────────────────── */
-  .id-input {
-    width: 100%; padding: 13px 17px;
-    border: 1.5px solid var(--border); border-radius: var(--r-lg);
-    font-family: 'Nunito', sans-serif; font-size: .98rem;
-    background: var(--glass-bg); backdrop-filter: blur(10px);
-    color: var(--text); outline: none; margin-bottom: 11px;
-    transition: border-color .2s, box-shadow .2s;
-  }
-  .id-input:focus { border-color: var(--pink); box-shadow: 0 0 0 3px rgba(243,126,154,.15); }
-  .id-input.ok  { border-color: var(--green); background: var(--green-lt); }
-  .id-input.bad { border-color: var(--red);   background: var(--red-lt); }
-
-  /* ── Panel actions ────────────────────────────────────────────────────── */
-  .panel-actions { display: flex; align-items: center; gap: 9px; margin-top: 10px; }
-  .panel-actions .ml { margin-left: auto; }
-
-  /* ── Done overlay ─────────────────────────────────────────────────────── */
-  .done-wrap {
-    position: absolute; inset: -20px;
-    background: rgba(255,252,240,.9); backdrop-filter: blur(16px);
+  .cl {
+    width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+    background: var(--cream2); color: var(--muted);
+    font-size: .68rem; font-weight: 800;
     display: flex; align-items: center; justify-content: center;
-    border-radius: var(--r-xl); z-index: 20;
-    animation: fadeIn .3s ease;
   }
-  .done-card {
-    background: var(--cream); border: 2px solid rgba(243,126,154,.35);
-    border-radius: var(--r-xl); padding: 40px 32px; text-align: center;
-    box-shadow: 0 16px 48px rgba(75,22,76,.18); max-width: 340px; width: 100%;
-    animation: popIn .3s ease;
+  .ch:hover:not(:disabled) { border-color: var(--pink); }
+  .ch:hover:not(:disabled) .cl { background: var(--pink); color: #fff; }
+  .ch.correct { background: var(--green-bg); border-color: var(--green); color: var(--green); }
+  .ch.correct .cl { background: var(--green); color: #fff; }
+  .ch.wrong   { background: var(--red-bg); border-color: var(--red); color: var(--red); }
+  .ch.wrong   .cl { background: var(--red); color: #fff; }
+  .ch:disabled { cursor: default; }
+
+  /* ── feedback ─────────────────────────────────────────────────────── */
+  .fb {
+    padding: 10px 14px; border-radius: 10px; font-size: .84rem;
+    line-height: 1.5; margin-bottom: 12px; border-left: 3px solid transparent;
   }
-  .done-emoji  { font-size: 2.6rem; margin-bottom: 10px; }
-  .done-title  { font-family: 'Coiny', cursive; font-size: 1.6rem; color: var(--purple); margin-bottom: 6px; }
-  .done-score  { font-family: 'Coiny', cursive; font-size: 3.6rem; color: var(--purple); line-height: 1; margin: 12px 0 4px; }
-  .done-sub    { color: var(--text-muted); font-size: .85rem; margin-bottom: 8px; }
-  .done-wrong  { color: var(--pink); font-size: .82rem; font-weight: 700; margin-bottom: 18px; }
-  .panel-relative { position: relative; min-height: 200px; }
+  .fb-lbl { font-weight: 800; display: block; margin-bottom: 2px; }
+  .fbok  { background: var(--green-bg); border-color: var(--green); color: var(--green); }
+  .fbbad { background: var(--red-bg);   border-color: var(--red);   color: var(--red);   }
+
+  /* ── id input ─────────────────────────────────────────────────────── */
+  .idinp {
+    width: 100%; padding: 11px 15px;
+    border: 1.5px solid var(--border); border-radius: 11px;
+    font-family: 'Nunito', sans-serif; font-size: .92rem;
+    background: var(--white); color: var(--text);
+    outline: none; margin-bottom: 10px; transition: border-color .18s;
+  }
+  .idinp:focus { border-color: var(--pink); }
+  .idinp.ok  { border-color: var(--green); background: var(--green-bg); }
+  .idinp.bad { border-color: var(--red);   background: var(--red-bg); }
+
+  /* ── actions ──────────────────────────────────────────────────────── */
+  .acts { display: flex; align-items: center; gap: 7px; margin-top: 8px; }
+  .acts .ml { margin-left: auto; }
+
+  /* ── done card ────────────────────────────────────────────────────── */
+  .done {
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: 14px; padding: 32px 22px; text-align: center; margin-top: 14px;
+  }
+  .done h3    { font-family: 'Coiny', cursive; font-size: 1.4rem; color: var(--purple); margin-bottom: 6px; }
+  .done-score { font-family: 'Coiny', cursive; font-size: 3rem; color: var(--purple); line-height: 1; margin: 10px 0 4px; }
+  .done-sub   { color: var(--muted); font-size: .8rem; margin-bottom: 14px; }
+  .done-btns  { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+
+  /* ── round notice ─────────────────────────────────────────────────── */
+  .rnotice {
+    background: var(--pink2); border: 1px solid rgba(243,126,154,.3);
+    border-radius: 8px; padding: 8px 12px;
+    font-size: .78rem; font-weight: 700; color: var(--purple);
+    margin-bottom: 12px; text-align: center;
+  }
 </style>
 
-<div class="page">
+<nav class="nav">
+  <div class="row" style="gap:10px">
+    <a href="/deck/{{ subject.deck_id }}" class="btn-nav">← Back</a>
+    <div>
+      <div style="font-family:'Coiny',cursive;font-size:1.1rem;color:#fff;line-height:1">{{ subject.name }}</div>
+      <div style="font-size:.7rem;color:rgba(255,255,255,.45)">{{ deck.emoji }} {{ deck.name }}</div>
+    </div>
+  </div>
+  <div class="nav-right">
+    <button class="toggle-wrap" onclick="toggleDark()" title="Toggle dark mode">
+      <span class="toggle-knob" id="dm-knob">🌙</span>
+      <span class="toggle-track" id="dm-track"></span>
+    </button>
+  </div>
+</nav>
 
-  <!-- Nav -->
-  <nav class="topnav">
-    <div class="nav-left">
-      <a class="back-btn" href="/deck/{{ subject.deck_id }}">← Back</a>
-      <div class="nav-info">
-        <span class="nav-subject">{{ subject.name }}</span>
-        <span class="nav-deck">{{ deck.emoji }} {{ deck.name }}</span>
+<!-- mode tabs -->
+<div class="mode-bar">
+  <button class="mode-tab active" data-mode="fc" onclick="setMode('fc',this)">📇 Flashcards</button>
+  <button class="mode-tab" data-mode="mc" onclick="setMode('mc',this)">🔘 Multiple Choice</button>
+  <button class="mode-tab" data-mode="id" onclick="setMode('id',this)">✏️ Identification</button>
+</div>
+
+<div class="study-wrap">
+
+  <!-- ══ FLASHCARDS ════════════════════════════════════════════════════ -->
+  <div id="pfc" class="panel">
+    <div class="bbar" id="fc-bbar"></div>
+    <div class="bleg" id="fc-bleg"></div>
+    <div class="prog-head"><span id="fc-pos">Card — of —</span><span class="hi" id="fc-pct">0%</span></div>
+    <div class="scene" onclick="flipCard()">
+      <div class="card3" id="fc-card">
+        <div class="face f-front" id="fc-front" data-r="0">
+          <div class="rbadge rb0" id="fc-badge">New</div>
+          <div class="ftag">term</div>
+          <p class="ftext" id="fc-term">—</p>
+          <p class="fhint">tap to flip</p>
+        </div>
+        <div class="face f-back">
+          <div class="ftag" style="opacity:.3">definition</div>
+          <p class="ftext" id="fc-def">—</p>
+        </div>
       </div>
     </div>
-  </nav>
-
-  <!-- Mode tabs -->
-  <div class="mode-tabs">
-    <button class="mode-tab active" data-mode="fc" onclick="setMode('fc',this)">📇 Flashcards</button>
-    <button class="mode-tab" data-mode="mc" onclick="setMode('mc',this)">🔘 Multiple Choice</button>
-    <button class="mode-tab" data-mode="id" onclick="setMode('id',this)">✏️ Identification</button>
+    <div class="rstrip hidden" id="rstrip">
+      <span class="rlbl">How well did you know this?</span>
+      <div class="rrow">
+        <button class="rbtn rb-1" onclick="rateCard(1)">1<small>Again</small></button>
+        <button class="rbtn rb-2" onclick="rateCard(2)">2<small>Hard</small></button>
+        <button class="rbtn rb-3" onclick="rateCard(3)">3<small>Okay</small></button>
+        <button class="rbtn rb-4" onclick="rateCard(4)">4<small>Good</small></button>
+        <button class="rbtn rb-5" onclick="rateCard(5)">5<small>Easy</small></button>
+      </div>
+    </div>
+    <div class="sgrid">
+      <div class="sbox"><div class="snum" id="s0" style="color:#94a3b8">0</div><div class="slbl">Unseen</div></div>
+      <div class="sbox"><div class="snum" id="s1" style="color:#ef4444">0</div><div class="slbl">Again</div></div>
+      <div class="sbox"><div class="snum" id="s2" style="color:#f97316">0</div><div class="slbl">Hard</div></div>
+      <div class="sbox"><div class="snum" id="s3" style="color:#eab308">0</div><div class="slbl">Okay</div></div>
+      <div class="sbox"><div class="snum" id="s4" style="color:#84cc16">0</div><div class="slbl">Good</div></div>
+      <div class="sbox"><div class="snum" id="s5" style="color:#22c55e">0</div><div class="slbl">Mastered</div></div>
+    </div>
+    <div class="acts"><button class="btn btn-ghost btn-sm" onclick="startFC()">↺ Restart</button></div>
   </div>
 
-  <div class="study-body">
-
-    <!-- ═══════════════════════════════════════════════════════════════════
-         FLASHCARDS
-         ═══════════════════════════════════════════════════════════════════ -->
-    <div id="panel-fc" class="panel">
-
-      <!-- Colour-coded breakdown bar -->
-      <div class="breakdown-bar" id="fc-breakdown-bar"></div>
-      <div class="breakdown-legend" id="fc-breakdown-legend"></div>
-
-      <!-- Standard progress -->
-      <div class="progress-meta">
-        <span id="fc-pos">Card — of —</span>
-        <span class="pct" id="fc-pct">0% mastered</span>
+  <!-- ══ MULTIPLE CHOICE ═══════════════════════════════════════════════ -->
+  <div id="pmc" class="panel hidden">
+    <div class="pills" id="mc-pills"></div>
+    <div class="prog-track"><div class="prog-fill" id="mc-bar" style="width:0%"></div></div>
+    <div class="prog-head" style="margin-top:-12px;margin-bottom:16px"><span id="mc-pos"></span><span class="hi" id="mc-pct">—</span></div>
+    <div class="rnotice hidden" id="mc-notice"></div>
+    <div class="qcard" id="mc-q">Loading…</div>
+    <div class="choices" id="mc-choices"></div>
+    <div class="fb hidden" id="mc-fb"></div>
+    <div class="acts">
+      <button class="btn btn-ghost btn-sm" onclick="resetMC()">↺ Restart</button>
+      <button class="btn btn-secondary btn-sm ml hidden" id="mc-nxt" onclick="nextMC()">Next →</button>
+    </div>
+    <div class="done hidden" id="mc-done">
+      <div style="font-size:1.6rem;margin-bottom:8px">🎉</div>
+      <h3>Round Complete!</h3>
+      <div class="done-score" id="mc-ds"></div>
+      <p class="done-sub" id="mc-dp"></p>
+      <div class="done-btns">
+        <button class="btn btn-ghost btn-sm" onclick="resetMC()">Start Over</button>
+        <button class="btn btn-primary btn-sm" onclick="nextRoundMC()">Next Round →</button>
       </div>
+    </div>
+  </div>
 
-      <!-- Flashcard -->
-      <div class="card-scene" id="card-scene" onclick="flipCard()">
-        <div class="card-3d" id="fc-card">
-          <div class="card-face card-front" id="fc-front">
-            <div class="rating-badge rb-0" id="fc-rating-badge">New</div>
-            <span class="face-tag">term</span>
-            <p class="face-text" id="fc-term">Loading…</p>
-            <span class="face-hint">tap to flip</span>
-          </div>
-          <div class="card-face card-back">
-            <span class="face-tag" style="color:rgba(255,252,240,.42)">definition</span>
-            <p class="face-text" id="fc-def"></p>
-          </div>
-        </div>
+  <!-- ══ IDENTIFICATION ════════════════════════════════════════════════ -->
+  <div id="pid" class="panel hidden">
+    <div class="pills" id="id-pills"></div>
+    <div class="prog-track"><div class="prog-fill" id="id-bar" style="width:0%"></div></div>
+    <div class="prog-head" style="margin-top:-12px;margin-bottom:16px"><span id="id-pos"></span><span class="hi" id="id-pct">—</span></div>
+    <div class="rnotice hidden" id="id-notice"></div>
+    <div class="qcard" id="id-q">Loading…</div>
+    <input class="idinp" id="id-inp" type="text" placeholder="Type the definition…"/>
+    <div class="fb hidden" id="id-fb"></div>
+    <div class="acts">
+      <button class="btn btn-ghost btn-sm" onclick="resetID()">↺ Restart</button>
+      <button class="btn btn-primary btn-sm" id="id-sub" onclick="submitID()">Submit</button>
+      <button class="btn btn-secondary btn-sm ml hidden" id="id-nxt" onclick="nextID()">Next →</button>
+    </div>
+    <div class="done hidden" id="id-done">
+      <div style="font-size:1.6rem;margin-bottom:8px">🎉</div>
+      <h3>Round Complete!</h3>
+      <div class="done-score" id="id-ds"></div>
+      <p class="done-sub" id="id-dp"></p>
+      <div class="done-btns">
+        <button class="btn btn-ghost btn-sm" onclick="resetID()">Start Over</button>
+        <button class="btn btn-primary btn-sm" onclick="nextRoundID()">Next Round →</button>
       </div>
+    </div>
+  </div>
 
-      <!-- Rating buttons (shown after flip) -->
-      <div class="rating-strip hidden" id="rating-strip">
-        <span class="rating-label">How well did you know this?</span>
-        <div class="rating-row">
-          <button class="r-btn r1" onclick="rateCard(1)">1<small>Again</small></button>
-          <button class="r-btn r2" onclick="rateCard(2)">2<small>Hard</small></button>
-          <button class="r-btn r3" onclick="rateCard(3)">3<small>Okay</small></button>
-          <button class="r-btn r4" onclick="rateCard(4)">4<small>Good</small></button>
-          <button class="r-btn r5" onclick="rateCard(5)">5<small>Easy</small></button>
-        </div>
-      </div>
-
-      <!-- Stat grid — one tile per rating bucket -->
-      <div class="fc-stats">
-        <div class="stat-card"><div class="stat-num n-gray"   id="fc-unseen">0</div><div class="stat-lbl">Unseen</div></div>
-        <div class="stat-card"><div class="stat-num n-red"    id="fc-again">0</div><div class="stat-lbl">Again</div></div>
-        <div class="stat-card"><div class="stat-num n-orange" id="fc-hard">0</div><div class="stat-lbl">Hard</div></div>
-        <div class="stat-card"><div class="stat-num n-yellow" id="fc-okay">0</div><div class="stat-lbl">Okay</div></div>
-        <div class="stat-card"><div class="stat-num n-lime"   id="fc-good">0</div><div class="stat-lbl">Good</div></div>
-        <div class="stat-card"><div class="stat-num n-green"  id="fc-mastered">0</div><div class="stat-lbl">Mastered</div></div>
-      </div>
-
-      <div class="panel-actions">
-        <button class="btn btn-ghost" onclick="startFC()">↺ Restart</button>
-      </div>
-    </div><!-- /panel-fc -->
-
-
-    <!-- ═══════════════════════════════════════════════════════════════════
-         MULTIPLE CHOICE
-         ═══════════════════════════════════════════════════════════════════ -->
-    <div id="panel-mc" class="panel hidden panel-relative">
-
-      <div class="score-bar" id="mc-scores"></div>
-      <div class="progress-track"><div class="progress-fill" id="mc-bar" style="width:0%"></div></div>
-      <div class="progress-meta">
-        <span id="mc-pos">Question — of {{ ROUNDS }}</span>
-        <span class="pct" id="mc-pct">—</span>
-      </div>
-
-      <div class="round-notice hidden" id="mc-round-notice"></div>
-
-      <div class="q-card" id="mc-question">Loading…</div>
-      <div class="choices" id="mc-choices"></div>
-      <div class="feedback hidden" id="mc-feedback"></div>
-
-      <div class="panel-actions">
-        <button class="btn btn-ghost" onclick="resetMC()">↺ Restart</button>
-        <button class="btn btn-pink ml hidden" id="mc-next" onclick="nextMC()">Next →</button>
-      </div>
-
-      <!-- Done overlay -->
-      <div class="done-wrap hidden" id="mc-done">
-        <div class="done-card">
-          <div class="done-emoji">🎉</div>
-          <h2 class="done-title">Round Complete!</h2>
-          <div class="done-score" id="mc-done-score"></div>
-          <p class="done-sub"   id="mc-done-sub"></p>
-          <p class="done-wrong" id="mc-done-wrong"></p>
-          <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-            <button class="btn btn-ghost" onclick="resetMC()">Start Over</button>
-            <button class="btn btn-purple" id="mc-next-round-btn" onclick="nextRoundMC()">Next Round →</button>
-          </div>
-        </div>
-      </div>
-    </div><!-- /panel-mc -->
-
-
-    <!-- ═══════════════════════════════════════════════════════════════════
-         IDENTIFICATION
-         ═══════════════════════════════════════════════════════════════════ -->
-    <div id="panel-id" class="panel hidden panel-relative">
-
-      <div class="score-bar" id="id-scores"></div>
-      <div class="progress-track"><div class="progress-fill" id="id-bar" style="width:0%"></div></div>
-      <div class="progress-meta">
-        <span id="id-pos">Question — of {{ ROUNDS }}</span>
-        <span class="pct" id="id-pct">—</span>
-      </div>
-
-      <div class="round-notice hidden" id="id-round-notice"></div>
-
-      <div class="q-card" id="id-question">Loading…</div>
-      <input class="id-input" id="id-input" type="text" placeholder="Type the definition…"/>
-      <div class="feedback hidden" id="id-feedback"></div>
-
-      <div class="panel-actions">
-        <button class="btn btn-ghost" onclick="resetID()">↺ Restart</button>
-        <button class="btn btn-purple" id="id-submit" onclick="submitID()">Submit</button>
-        <button class="btn btn-pink ml hidden" id="id-next" onclick="nextID()">Next →</button>
-      </div>
-
-      <!-- Done overlay -->
-      <div class="done-wrap hidden" id="id-done">
-        <div class="done-card">
-          <div class="done-emoji">🎉</div>
-          <h2 class="done-title">Round Complete!</h2>
-          <div class="done-score" id="id-done-score"></div>
-          <p class="done-sub"   id="id-done-sub"></p>
-          <p class="done-wrong" id="id-done-wrong"></p>
-          <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-            <button class="btn btn-ghost" onclick="resetID()">Start Over</button>
-            <button class="btn btn-purple" id="id-next-round-btn" onclick="nextRoundID()">Next Round →</button>
-          </div>
-        </div>
-      </div>
-    </div><!-- /panel-id -->
-
-  </div><!-- /study-body -->
-</div><!-- /page -->
+</div><!-- /study-wrap -->
 {% endblock %}
 
 {% block scripts %}
 <script>
-  // ════════════════════════════════════════════════════════════════════════
-  //  Config & state
-  // ════════════════════════════════════════════════════════════════════════
   const SID    = {{ subject.id }};
   const ROUNDS = {{ ROUNDS }};
+  const RCOL   = ['#94a3b8','#ef4444','#f97316','#eab308','#84cc16','#22c55e'];
+  const RLBL   = ['New','Again','Hard','Okay','Good','Easy'];
 
-  // Rating label map
-  const RATING_LABELS = ['New','Again','Hard','Okay','Good','Easy'];
-  const RATING_COLORS = ['#9ca3af','#ef4444','#f97316','#eab308','#84cc16','#22c55e'];
-
-  // Sound effects (user-provided files)
-  const sfxCorrect = new Audio('/static/sound/correct.mp3');
-  const sfxWrong   = new Audio('/static/sound/wrong.mp3');   // placeholder
-
-  function playSound(correct) {
-    try {
-      if (correct) { sfxCorrect.currentTime = 0; sfxCorrect.play().catch(() => {}); }
-      else         { sfxWrong.currentTime   = 0; sfxWrong.play().catch(() => {}); }
-    } catch (_) {}
+  /* sounds */
+  const sfxOk  = new Audio('/static/sound/correct.mp3');
+  const sfxBad = new Audio('/static/sound/wrong.mp3');
+  function playSound(ok) {
+    try { const s=ok?sfxOk:sfxBad; s.currentTime=0; s.play().catch(()=>{}); } catch(e){}
   }
 
-  // MC / ID running counters (mirrored from server for display)
-  let mcTotal = 0, mcCorrect = 0, mcQ = 0, mcAnswered = false, mcCorrectDef = null, mcTerm = null;
-  let idTotal = 0, idCorrect = 0, idQ = 0, idAnswered = false, idCorrectDef = null, idTerm = null;
+  let mcTotal=0,mcCorrect=0,mcQ=0,mcAnswered=false,mcCorrectDef=null,mcTerm=null;
+  let idTotal=0,idCorrect=0,idQ=0,idAnswered=false,idCorrectDef=null,idTerm=null;
 
-  // ════════════════════════════════════════════════════════════════════════
-  //  Mode switching
-  // ════════════════════════════════════════════════════════════════════════
-  function setMode(mode, btn) {
-    ['fc','mc','id'].forEach(m =>
-      document.getElementById(`panel-${m}`).classList.toggle('hidden', m !== mode)
-    );
+  function setMode(m, btn) {
+    ['fc','mc','id'].forEach(k => document.getElementById('p'+k).classList.toggle('hidden', k!==m));
     document.querySelectorAll('.mode-tab').forEach(b => b.classList.remove('active'));
-    if (btn) btn.classList.add('active');
-
-    if (mode === 'fc') startFC();
-    if (mode === 'mc') startMC();
-    if (mode === 'id') startID();
+    btn.classList.add('active');
+    if(m==='fc') startFC();
+    if(m==='mc') startMC();
+    if(m==='id') startID();
   }
 
-  // ════════════════════════════════════════════════════════════════════════
-  //  FLASHCARDS
-  // ════════════════════════════════════════════════════════════════════════
-
+  /* ── flashcards ────────────────────────────────────────────────────── */
   async function startFC() {
-    const { ok, data } = await api(`/api/study/${SID}/fc/start`, { method: 'POST' });
+    const { ok, data } = await api(`/api/study/${SID}/fc/start`, { method:'POST' });
     if (ok) renderFC(data);
   }
-
   function renderFC(d) {
-    // Breakdown colour bar
     if (d.breakdown) {
-      const total = d.total || 1;
-      const bar   = document.getElementById('fc-breakdown-bar');
-      const leg   = document.getElementById('fc-breakdown-legend');
-      bar.innerHTML = d.breakdown.map(b =>
-        b.count > 0
-          ? `<div class="breakdown-seg" title="${b.label}: ${b.count}"
-               style="width:${Math.round(b.count/total*100)}%;background:${b.color}"></div>`
-          : ''
-      ).join('');
-      leg.innerHTML = d.breakdown.map(b =>
-        b.count > 0
-          ? `<span class="legend-item">
-               <span class="legend-dot" style="background:${b.color}"></span>
-               ${b.label} (${b.count})
-             </span>`
-          : ''
-      ).join('');
+      const tot = d.total || 1;
+      document.getElementById('fc-bbar').innerHTML = d.breakdown.map(b => b.count
+        ? `<div class="bseg" style="width:${Math.round(b.count/tot*100)}%;background:${b.color}"></div>` : '').join('');
+      document.getElementById('fc-bleg').innerHTML = d.breakdown.map(b => b.count
+        ? `<span class="bleg-i"><span class="bleg-d" style="background:${b.color}"></span>${b.label} (${b.count})</span>` : '').join('');
+      d.breakdown.forEach((b,i) => { document.getElementById('s'+i).textContent = b.count; });
     }
-
-    // Stat tiles
-    if (d.breakdown) {
-      document.getElementById('fc-unseen').textContent   = d.breakdown[0].count;
-      document.getElementById('fc-again').textContent    = d.breakdown[1].count;
-      document.getElementById('fc-hard').textContent     = d.breakdown[2].count;
-      document.getElementById('fc-okay').textContent     = d.breakdown[3].count;
-      document.getElementById('fc-good').textContent     = d.breakdown[4].count;
-      document.getElementById('fc-mastered').textContent = d.breakdown[5].count;
-    }
-
     if (d.done) {
-      document.getElementById('fc-term').textContent = '🎉 All done!';
-      document.getElementById('fc-def').textContent  = 'Excellent work!';
-      document.getElementById('fc-pos').textContent  = 'Session complete';
-      document.getElementById('fc-pct').textContent  = '100% mastered';
-      document.getElementById('rating-strip').classList.add('hidden');
+      document.getElementById('fc-term').textContent='🎉 All done!';
+      document.getElementById('fc-def').textContent='Great work!';
+      document.getElementById('fc-pos').textContent='Complete';
+      document.getElementById('fc-pct').textContent='100%';
+      document.getElementById('rstrip').classList.add('hidden');
       return;
     }
-
-    // Card content
     document.getElementById('fc-term').textContent = d.term;
     document.getElementById('fc-def').textContent  = d.def;
     document.getElementById('fc-pos').textContent  = `Card ${d.position} of ${d.remaining}`;
     document.getElementById('fc-pct').textContent  = `${d.pct}% mastered`;
-
-    // Colour-code card border by rating
     const front = document.getElementById('fc-front');
-    front.setAttribute('data-rating', d.rating);
-
-    // Rating badge
-    const badge = document.getElementById('fc-rating-badge');
-    badge.textContent  = RATING_LABELS[d.rating] || 'New';
-    badge.className    = `rating-badge rb-${d.rating}`;
-
-    // Reset flip state
-    document.getElementById('fc-card').classList.remove('flipped');
-    document.getElementById('rating-strip').classList.add('hidden');
+    front.setAttribute('data-r', d.rating);
+    const badge = document.getElementById('fc-badge');
+    badge.textContent = RLBL[d.rating]; badge.className = `rbadge rb${d.rating}`;
+    document.getElementById('fc-card').classList.remove('flip');
+    document.getElementById('rstrip').classList.add('hidden');
   }
-
   function flipCard() {
-    const card = document.getElementById('fc-card');
-    card.classList.toggle('flipped');
-    const flipped = card.classList.contains('flipped');
-    document.getElementById('rating-strip').classList.toggle('hidden', !flipped);
+    const c = document.getElementById('fc-card');
+    c.classList.toggle('flip');
+    document.getElementById('rstrip').classList.toggle('hidden', !c.classList.contains('flip'));
   }
-
-  async function rateCard(rating) {
-    const { ok, data } = await api(`/api/study/${SID}/fc/rate`, {
-      method: 'POST',
-      body: JSON.stringify({ rating }),
-    });
+  async function rateCard(r) {
+    const { ok, data } = await api(`/api/study/${SID}/fc/rate`, { method:'POST', body:JSON.stringify({rating:r}) });
     if (ok) renderFC(data);
   }
 
-  // ════════════════════════════════════════════════════════════════════════
-  //  MULTIPLE CHOICE
-  // ════════════════════════════════════════════════════════════════════════
-
+  /* ── MC ────────────────────────────────────────────────────────────── */
   async function startMC() {
-    mcTotal = 0; mcCorrect = 0; mcQ = 0; mcAnswered = false;
+    mcTotal=0;mcCorrect=0;mcQ=0;mcAnswered=false;
     document.getElementById('mc-done').classList.add('hidden');
-    document.getElementById('mc-round-notice').classList.add('hidden');
-    const { ok } = await api(`/api/study/${SID}/mc/start`, { method: 'POST' });
-    if (ok) { renderMCScores(); await loadMCQuestion(); }
+    document.getElementById('mc-notice').classList.add('hidden');
+    await api(`/api/study/${SID}/mc/start`, {method:'POST'});
+    renderMCPills(); await loadMCQ();
   }
-
   function resetMC() { startMC(); }
 
-  async function loadMCQuestion() {
+  async function loadMCQ() {
     if (mcQ >= ROUNDS) { showMCDone(); return; }
-
     const { ok, data } = await api(`/api/study/${SID}/mc/question`);
-    if (!ok) { document.getElementById('mc-question').textContent = data.error; return; }
-
-    mcCorrectDef = data.correct;
-    mcTerm       = data.term;
-    mcAnswered   = false;
-
-    document.getElementById('mc-question').textContent = data.term;
-    document.getElementById('mc-feedback').classList.add('hidden');
-    document.getElementById('mc-next').classList.add('hidden');
-    document.getElementById('mc-pos').textContent = `Question ${mcQ + 1} of ${ROUNDS}`;
-
-    // Build choices with letter labels (A B C D)
-    const letters = ['A','B','C','D'];
-    const list = document.getElementById('mc-choices');
-    list.innerHTML = '';
-    data.choices.forEach((c, i) => {
-      const btn = document.createElement('button');
-      btn.className = 'choice-btn';
-      btn.innerHTML = `<span class="choice-letter">${letters[i]}</span><span>${esc(c)}</span>`;
-      btn.onclick   = () => answerMC(btn, c, data.correct, data.term);
-      list.appendChild(btn);
+    if (!ok) { document.getElementById('mc-q').textContent = data.error; return; }
+    mcCorrectDef=data.correct; mcTerm=data.term; mcAnswered=false;
+    document.getElementById('mc-q').textContent = data.term;
+    document.getElementById('mc-fb').classList.add('hidden');
+    document.getElementById('mc-nxt').classList.add('hidden');
+    document.getElementById('mc-pos').textContent = `Question ${mcQ+1} of ${ROUNDS}`;
+    const L=['A','B','C','D'];
+    const ch=document.getElementById('mc-choices'); ch.innerHTML='';
+    data.choices.forEach((c,i) => {
+      const b=document.createElement('button'); b.className='ch';
+      b.innerHTML=`<span class="cl">${L[i]||''}</span><span>${esc(c)}</span>`;
+      b.onclick=()=>answerMC(b,c,data.correct,data.term);
+      ch.appendChild(b);
     });
-
-    renderMCScores();
+    renderMCPills();
   }
-
-  async function answerMC(btn, chosen, correct, term) {
-    if (mcAnswered) return;
-    mcAnswered = true;
-
-    // Show "thinking" feedback while AI generates explanation
-    const fb = document.getElementById('mc-feedback');
-    fb.innerHTML  = '<span class="fb-label">🤔 Thinking…</span>';
-    fb.className  = 'feedback fb-thinking';
-    fb.classList.remove('hidden');
-
-    const { ok, data } = await api(`/api/study/${SID}/mc/answer`, {
-      method: 'POST',
-      body: JSON.stringify({ term, chosen, correct }),
-    });
-    if (!ok) return;
-
-    mcTotal   = data.mc_total;
-    mcCorrect = data.mc_correct;
-    mcQ++;
-
-    // Sound
+  async function answerMC(btn,chosen,correct,term) {
+    if(mcAnswered) return; mcAnswered=true;
+    const fb=document.getElementById('mc-fb');
+    fb.innerHTML='<span class="fb-lbl">…</span>';
+    fb.className='fb'; fb.classList.remove('hidden');
+    const {ok,data} = await api(`/api/study/${SID}/mc/answer`,{method:'POST',body:JSON.stringify({term,chosen,correct})});
+    if(!ok) return;
+    mcTotal=data.mc_total; mcCorrect=data.mc_correct; mcQ++;
     playSound(data.correct);
-
-    // Colour buttons
-    document.querySelectorAll('.choice-btn').forEach(b => {
-      b.disabled = true;
-      const text = b.querySelector('span:last-child').textContent;
-      if (text.toLowerCase() === correct.toLowerCase()) b.classList.add('correct');
-      else if (b === btn && !data.correct) b.classList.add('wrong');
+    document.querySelectorAll('.ch').forEach(b=>{
+      b.disabled=true;
+      const txt=b.querySelector('span:last-child').textContent;
+      if(txt.toLowerCase()===correct.toLowerCase()) b.classList.add('correct');
+      else if(b===btn&&!data.correct) b.classList.add('wrong');
     });
-
-    // AI explanation feedback
-    fb.innerHTML = `
-      <span class="fb-label">${data.correct ? '✅ Correct!' : '❌ Wrong'}</span>
-      ${esc(data.explanation)}
-    `;
-    fb.className = 'feedback ' + (data.correct ? 'fb-ok' : 'fb-bad');
-
-    document.getElementById('mc-next').classList.remove('hidden');
-    renderMCScores();
+    fb.innerHTML=`<span class="fb-lbl">${data.correct?'✅ Correct!':'❌ Wrong'}</span>${esc(data.explanation)}`;
+    fb.className='fb '+(data.correct?'fbok':'fbbad');
+    document.getElementById('mc-nxt').classList.remove('hidden');
+    renderMCPills();
   }
-
-  function nextMC() { loadMCQuestion(); }
-
+  function nextMC() { loadMCQ(); }
   async function nextRoundMC() {
     document.getElementById('mc-done').classList.add('hidden');
-    const { ok, data } = await api(`/api/study/${SID}/mc/next-round`, { method: 'POST' });
-    if (!ok) return;
-
-    mcQ = 0; mcAnswered = false;
-
-    // Show round notice if there were wrong answers carried over
-    const notice = document.getElementById('mc-round-notice');
-    if (data.prev_wrong_count > 0) {
-      notice.textContent = `Round ${data.round} · Revisiting ${data.prev_wrong_count} missed question${data.prev_wrong_count > 1 ? 's' : ''} 🔄`;
-      notice.classList.remove('hidden');
-    } else {
-      notice.classList.add('hidden');
-    }
-
-    renderMCScores();
-    await loadMCQuestion();
+    const {ok,data} = await api(`/api/study/${SID}/mc/next-round`,{method:'POST'});
+    if(!ok) return;
+    mcQ=0; mcAnswered=false;
+    const n=document.getElementById('mc-notice');
+    if(data.prev_wrong_count>0){
+      n.textContent=`Round ${data.round} · Revisiting ${data.prev_wrong_count} missed question${data.prev_wrong_count>1?'s':''} 🔄`;
+      n.classList.remove('hidden');
+    } else n.classList.add('hidden');
+    renderMCPills(); await loadMCQ();
   }
-
   function showMCDone() {
-    const pct   = mcTotal ? Math.round(mcCorrect / mcTotal * 100) : 0;
-    const wrong = mcTotal - mcCorrect;
-    document.getElementById('mc-done-score').textContent = pct + '%';
-    document.getElementById('mc-done-sub').textContent   =
-      `${mcCorrect} correct out of ${mcTotal}`;
-    document.getElementById('mc-done-wrong').textContent =
-      wrong > 0 ? `${wrong} wrong answer${wrong > 1 ? 's' : ''} will reappear next round` : '🎉 Perfect round!';
+    const pct=mcTotal?Math.round(mcCorrect/mcTotal*100):0;
+    document.getElementById('mc-ds').textContent=pct+'%';
+    document.getElementById('mc-dp').textContent=`${mcCorrect} correct out of ${mcTotal}`;
     document.getElementById('mc-done').classList.remove('hidden');
-    renderMCScores();
+    renderMCPills();
+  }
+  function renderMCPills() {
+    const pct=mcTotal?Math.round(mcCorrect/mcTotal*100):0;
+    document.getElementById('mc-pills').innerHTML=
+      `<span class="pill p-ac">📋 ${mcTotal}</span><span class="pill p-gn">✅ ${mcCorrect}</span><span class="pill p-rd">❌ ${mcTotal-mcCorrect}</span><span class="pill p-pk">🎯 ${mcTotal?pct+'%':'—'}</span>`;
+    document.getElementById('mc-bar').style.width=Math.min(mcQ/ROUNDS*100,100)+'%';
+    document.getElementById('mc-pct').textContent=mcTotal?pct+'%':'—';
   }
 
-  function renderMCScores() {
-    const pct   = mcTotal ? Math.round(mcCorrect / mcTotal * 100) : 0;
-    const wrong = mcTotal - mcCorrect;
-    document.getElementById('mc-scores').innerHTML = `
-      <span class="s-pill sp-total">📋 ${mcTotal}</span>
-      <span class="s-pill sp-correct">✅ ${mcCorrect}</span>
-      <span class="s-pill sp-wrong">❌ ${wrong}</span>
-      <span class="s-pill sp-pct">🎯 ${mcTotal ? pct + '%' : '—'}</span>`;
-    document.getElementById('mc-bar').style.width =
-      Math.min(mcQ / ROUNDS * 100, 100) + '%';
-    document.getElementById('mc-pct').textContent = mcTotal ? pct + '%' : '—';
-  }
-
-  // ════════════════════════════════════════════════════════════════════════
-  //  IDENTIFICATION
-  // ════════════════════════════════════════════════════════════════════════
-
+  /* ── ID ────────────────────────────────────────────────────────────── */
   async function startID() {
-    idTotal = 0; idCorrect = 0; idQ = 0; idAnswered = false;
+    idTotal=0;idCorrect=0;idQ=0;idAnswered=false;
     document.getElementById('id-done').classList.add('hidden');
-    document.getElementById('id-round-notice').classList.add('hidden');
-    const { ok } = await api(`/api/study/${SID}/id/start`, { method: 'POST' });
-    if (ok) { renderIDScores(); await loadIDQuestion(); }
+    document.getElementById('id-notice').classList.add('hidden');
+    await api(`/api/study/${SID}/id/start`,{method:'POST'});
+    renderIDPills(); await loadIDQ();
   }
-
   function resetID() { startID(); }
 
-  async function loadIDQuestion() {
-    if (idQ >= ROUNDS) { showIDDone(); return; }
-
-    const { ok, data } = await api(`/api/study/${SID}/id/question`);
-    if (!ok) { document.getElementById('id-question').textContent = data.error; return; }
-
-    idCorrectDef = data.correct;
-    idTerm       = data.term;
-    idAnswered   = false;
-
-    document.getElementById('id-question').textContent = data.term;
-    document.getElementById('id-pos').textContent = `Question ${idQ + 1} of ${ROUNDS}`;
-
-    const inp = document.getElementById('id-input');
-    inp.value = ''; inp.className = 'id-input'; inp.disabled = false; inp.focus();
-
-    document.getElementById('id-feedback').classList.add('hidden');
-    document.getElementById('id-submit').classList.remove('hidden');
-    document.getElementById('id-next').classList.add('hidden');
-    renderIDScores();
+  async function loadIDQ() {
+    if(idQ>=ROUNDS){showIDDone();return;}
+    const {ok,data} = await api(`/api/study/${SID}/id/question`);
+    if(!ok){document.getElementById('id-q').textContent=data.error;return;}
+    idCorrectDef=data.correct; idTerm=data.term; idAnswered=false;
+    document.getElementById('id-q').textContent=data.term;
+    document.getElementById('id-pos').textContent=`Question ${idQ+1} of ${ROUNDS}`;
+    const inp=document.getElementById('id-inp');
+    inp.value='';inp.className='idinp';inp.disabled=false;inp.focus();
+    document.getElementById('id-fb').classList.add('hidden');
+    document.getElementById('id-sub').classList.remove('hidden');
+    document.getElementById('id-nxt').classList.add('hidden');
+    renderIDPills();
   }
-
   async function submitID() {
-    if (idAnswered || !idCorrectDef) return;
-    idAnswered = true;
-
-    const inp   = document.getElementById('id-input');
-    const given = inp.value;
-
-    // Show thinking state
-    const fb = document.getElementById('id-feedback');
-    fb.innerHTML = '<span class="fb-label">🤔 Thinking…</span>';
-    fb.className = 'feedback fb-thinking';
-    fb.classList.remove('hidden');
-
-    const { ok, data } = await api(`/api/study/${SID}/id/answer`, {
-      method: 'POST',
-      body: JSON.stringify({ term: idTerm, given, correct: idCorrectDef }),
-    });
-    if (!ok) return;
-
-    idTotal   = data.id_total;
-    idCorrect = data.id_correct;
-    idQ++;
-
+    if(idAnswered||!idCorrectDef)return; idAnswered=true;
+    const inp=document.getElementById('id-inp');
+    const fb=document.getElementById('id-fb');
+    fb.innerHTML='<span class="fb-lbl">…</span>';
+    fb.className='fb'; fb.classList.remove('hidden');
+    const {ok,data} = await api(`/api/study/${SID}/id/answer`,{method:'POST',body:JSON.stringify({term:idTerm,given:inp.value,correct:idCorrectDef})});
+    if(!ok)return;
+    idTotal=data.id_total;idCorrect=data.id_correct;idQ++;
     playSound(data.correct);
-
-    inp.disabled  = true;
-    inp.className = 'id-input ' + (data.correct ? 'ok' : 'bad');
-
-    fb.innerHTML = `
-      <span class="fb-label">${data.correct ? '✅ Correct!' : '❌ Wrong'}</span>
-      ${esc(data.explanation)}
-    `;
-    fb.className = 'feedback ' + (data.correct ? 'fb-ok' : 'fb-bad');
-
-    document.getElementById('id-submit').classList.add('hidden');
-    document.getElementById('id-next').classList.remove('hidden');
-    renderIDScores();
+    inp.disabled=true; inp.className='idinp '+(data.correct?'ok':'bad');
+    fb.innerHTML=`<span class="fb-lbl">${data.correct?'✅ Correct!':'❌ Wrong'}</span>${esc(data.explanation)}`;
+    fb.className='fb '+(data.correct?'fbok':'fbbad');
+    document.getElementById('id-sub').classList.add('hidden');
+    document.getElementById('id-nxt').classList.remove('hidden');
+    renderIDPills();
   }
-
-  function nextID() { loadIDQuestion(); }
-
+  function nextID() { loadIDQ(); }
   async function nextRoundID() {
     document.getElementById('id-done').classList.add('hidden');
-    const { ok, data } = await api(`/api/study/${SID}/id/next-round`, { method: 'POST' });
-    if (!ok) return;
-
-    idQ = 0; idAnswered = false;
-
-    const notice = document.getElementById('id-round-notice');
-    if (data.prev_wrong_count > 0) {
-      notice.textContent = `Round ${data.round} · Revisiting ${data.prev_wrong_count} missed question${data.prev_wrong_count > 1 ? 's' : ''} 🔄`;
-      notice.classList.remove('hidden');
-    } else {
-      notice.classList.add('hidden');
-    }
-
-    renderIDScores();
-    await loadIDQuestion();
+    const {ok,data} = await api(`/api/study/${SID}/id/next-round`,{method:'POST'});
+    if(!ok)return;
+    idQ=0;idAnswered=false;
+    const n=document.getElementById('id-notice');
+    if(data.prev_wrong_count>0){
+      n.textContent=`Round ${data.round} · Revisiting ${data.prev_wrong_count} missed item${data.prev_wrong_count>1?'s':''} 🔄`;
+      n.classList.remove('hidden');
+    } else n.classList.add('hidden');
+    renderIDPills(); await loadIDQ();
   }
-
   function showIDDone() {
-    const pct   = idTotal ? Math.round(idCorrect / idTotal * 100) : 0;
-    const wrong = idTotal - idCorrect;
-    document.getElementById('id-done-score').textContent = pct + '%';
-    document.getElementById('id-done-sub').textContent   =
-      `${idCorrect} correct out of ${idTotal}`;
-    document.getElementById('id-done-wrong').textContent =
-      wrong > 0 ? `${wrong} wrong answer${wrong > 1 ? 's' : ''} will reappear next round` : '🎉 Perfect round!';
+    const pct=idTotal?Math.round(idCorrect/idTotal*100):0;
+    document.getElementById('id-ds').textContent=pct+'%';
+    document.getElementById('id-dp').textContent=`${idCorrect} correct out of ${idTotal}`;
     document.getElementById('id-done').classList.remove('hidden');
-    renderIDScores();
+    renderIDPills();
   }
-
-  function renderIDScores() {
-    const pct   = idTotal ? Math.round(idCorrect / idTotal * 100) : 0;
-    const wrong = idTotal - idCorrect;
-    document.getElementById('id-scores').innerHTML = `
-      <span class="s-pill sp-total">📋 ${idTotal}</span>
-      <span class="s-pill sp-correct">✅ ${idCorrect}</span>
-      <span class="s-pill sp-wrong">❌ ${wrong}</span>
-      <span class="s-pill sp-pct">🎯 ${idTotal ? pct + '%' : '—'}</span>`;
-    document.getElementById('id-bar').style.width =
-      Math.min(idQ / ROUNDS * 100, 100) + '%';
-    document.getElementById('id-pct').textContent = idTotal ? pct + '%' : '—';
+  function renderIDPills() {
+    const pct=idTotal?Math.round(idCorrect/idTotal*100):0;
+    document.getElementById('id-pills').innerHTML=
+      `<span class="pill p-ac">📋 ${idTotal}</span><span class="pill p-gn">✅ ${idCorrect}</span><span class="pill p-rd">❌ ${idTotal-idCorrect}</span><span class="pill p-pk">🎯 ${idTotal?pct+'%':'—'}</span>`;
+    document.getElementById('id-bar').style.width=Math.min(idQ/ROUNDS*100,100)+'%';
+    document.getElementById('id-pct').textContent=idTotal?pct+'%':'—';
   }
-
-  // ── Enter key for ID ──────────────────────────────────────────────────────
-  document.getElementById('id-input').addEventListener('keydown', e => {
-    if (e.key !== 'Enter') return;
-    if (!document.getElementById('id-next').classList.contains('hidden')) nextID();
+  document.getElementById('id-inp').addEventListener('keydown',e=>{
+    if(e.key!=='Enter')return;
+    if(!document.getElementById('id-nxt').classList.contains('hidden'))nextID();
     else submitID();
   });
 
-  // ── Boot ──────────────────────────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', startFC);
 </script>
 {% endblock %}

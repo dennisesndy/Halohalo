@@ -33,8 +33,7 @@ from engine import (
     build_fc_session, fc_insert_after_rating, fc_stats,
     generate_mc_question, check_mc, _is_true_false_item,
     generate_id_question, check_id,
-    build_round_queue, build_explanation_prompt,
-    generate_export_html,
+    build_round_queue, build_explanation_prompt
 )
 
 # ── App setup ──────────────────────────────────────────────────────────────
@@ -604,16 +603,35 @@ def id_reset(subject_id):
 # EXPORT
 # =============================================================================
 
+@app.route("/api/subjects/<int:subject_id>/export")
+@login_required
+def export_subject(subject_id):
+    """Export a single subject as fully self-contained HTML — no server needed."""
+    from exporter import build_subject_html
+    subj = get_subject(subject_id)
+    if not subj:
+        return jsonify({"error": "Subject not found"}), 404
+    items     = json.loads(subj["items_json"])
+    html      = build_subject_html(subj["name"], items)
+    safe_name = "".join(c for c in subj["name"] if c.isalnum() or c in " _-")
+    return Response(
+        html,
+        mimetype="text/html",
+        headers={"Content-Disposition": f'attachment; filename="{safe_name}_Reviewer.html"'},
+    )
+
+
 @app.route("/api/decks/<int:deck_id>/export")
 @login_required
 def export_deck(deck_id):
+    """Export all subjects in a deck merged into one reviewer."""
+    from exporter import build_subject_html
     deck     = get_deck(deck_id)
     subjects = get_subjects(deck_id)
-    payload  = [
-        {"name": s["name"], "items": json.loads(s["items_json"])}
-        for s in subjects
-    ]
-    html      = generate_export_html(deck["name"], payload)
+    all_items = []
+    for s in subjects:
+        all_items.extend(json.loads(s["items_json"]))
+    html      = build_subject_html(deck["name"], all_items)
     safe_name = "".join(c for c in deck["name"] if c.isalnum() or c in " _-")
     return Response(
         html,
